@@ -1,0 +1,14 @@
+export function createSignalTicker({container,track,documentRef=document,ResizeObserverImpl=typeof ResizeObserver==="undefined"?null:ResizeObserver,requestFrame=cb=>requestAnimationFrame(cb),cancelFrame=id=>cancelAnimationFrame(id)}={}){
+ container||=documentRef?.getElementById("signal-ticker");track||=documentRef?.getElementById("signal-track");if(!container||!track||!documentRef)throw new TypeError("Signal ticker elements are required");
+ let destroyed=false,paused=false,frame=0,observer=null,lastKey=null,ready=false,lastWidth=0,lastDuration=0;
+ function layout(){if(destroyed)return;const cycle=track.querySelector(".signal-cycle");if(!cycle)return;const width=cycle.getBoundingClientRect().width;if(!width)return;while(track.scrollWidth<container.clientWidth+width)track.append(cycle.cloneNode(true));const duration=Math.max(18,width/36);if(width!==lastWidth){track.style.setProperty("--signal-distance",width+"px");lastWidth=width}if(duration!==lastDuration){track.style.setProperty("--signal-duration",duration+"s");lastDuration=duration}if(!ready){track.style.animation="signal-marquee var(--signal-duration) linear infinite";ready=true}track.style.animationPlayState=paused?"paused":"running"}
+ function schedule(){if(destroyed||frame)return;frame=requestFrame(()=>{frame=0;layout()})}
+ function render(rows,state="ready"){if(destroyed)return;const names=(Array.isArray(rows)?rows:[]).map(x=>String(x.name||x.code||"").trim()).filter(Boolean),mode=state==="ready"?"ready":state==="waiting"?"waiting":"unavailable",key=mode+":"+names.join("|");if(key===lastKey)return;lastKey=key;const cycle=documentRef.createElement("div");cycle.className="signal-cycle";
+  if(mode!=="ready"||!names.length){const n=documentRef.createElement("span");n.className="signal-empty";n.textContent=mode==="waiting"?"▰ 等待数据 ▰":mode==="unavailable"?"▰ 数据暂不可用 ▰":"▰ No change ▰";cycle.append(n)}
+  else{const group=documentRef.createElement("div");group.className="signal-group";const content=documentRef.createElement("div");content.className="signal-content";for(let i=0;i<names.length;i+=3){const row=documentRef.createElement("span");row.className="signal-row";row.textContent=names.slice(i,i+3).map(n=>"▰ "+n+" ▰").join("   ");content.append(row)}group.append(content);cycle.append(group)}
+  track.replaceChildren(cycle);lastWidth=0;lastDuration=0;schedule()}
+ function setPaused(v){paused=Boolean(v);track.style.animationPlayState=paused?"paused":"running"}
+ if(ResizeObserverImpl){observer=new ResizeObserverImpl(schedule);observer.observe(container)}else window.addEventListener("resize",schedule,{passive:true});
+ function destroy(){if(destroyed)return;destroyed=true;observer?.disconnect();if(!observer)window.removeEventListener("resize",schedule);if(frame)cancelFrame(frame);frame=0;track.replaceChildren()}
+ return Object.freeze({render,setPaused,layout:schedule,destroy});
+}

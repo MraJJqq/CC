@@ -1,0 +1,12 @@
+const brand=document.getElementById("logo-brand"),label=document.getElementById("logo-symbol"),codeLabel=document.getElementById("logo-code"),countdown=document.getElementById("logo-countdown");
+let current="",pending=null,transitioning=false,clock=null,calendar=null,currentName="",currentCode="";
+function apply(data){current=data.symbol||"";currentName=data.name||current;currentCode=data.code||"";label.textContent=currentName;codeLabel.textContent=currentCode;renderCountdown()}
+function setSymbol(data){if(!data||typeof data!=="object"||!data.symbol)return;if(data.symbol===current&&data.name===currentName&&data.code===currentCode)return;if(!current){apply(data);brand.style.opacity="1";return}pending=data;transitioning=true;brand.style.opacity="0";setTimeout(()=>{if(pending)apply(pending);pending=null;brand.style.opacity="1";setTimeout(()=>transitioning=false,1500)},1500)}
+function nextTradingClose(now){const days=calendar?.trading_days;if(!Array.isArray(days))return null;for(const day of days){const t=Date.parse(day+"T07:00:00Z");if(Number.isFinite(t)&&t>now)return t}return null}
+function renderCountdown(){const target=nextTradingClose(Date.now());if(!current||!target){countdown.hidden=true;return}const mins=Math.max(0,Math.ceil((target-Date.now())/60000)),h=Math.floor(mins/60),m=mins%60;countdown.textContent="1D · "+[h,m].map(v=>String(v).padStart(2,"0")).join(":");countdown.hidden=false}
+async function refreshCalendar(){try{const r=await fetch("../../../data/trading-calendar.json",{cache:"no-store"});if(!r.ok)throw new Error();calendar=await r.json();renderCountdown()}catch(_){calendar=null;countdown.hidden=true}}
+function scheduleClock(){if(clock!==null)clearTimeout(clock);clock=setTimeout(()=>{clock=null;renderCountdown();if(document.visibilityState!=="hidden")scheduleClock()},Math.max(50,60000-(Date.now()%60000)+25))}
+function stopClock(){if(clock!==null)clearTimeout(clock);clock=null}
+window.addEventListener("message",event=>{if(event.origin!==location.origin||event.source!==window.parent)return;const d=event.data;if(!d||typeof d!=="object")return;if(d.type==="VEGAS_LOGO_SET_SYMBOL")setSymbol(d);if(d.type==="VEGAS_LOGO_CLEAR"){current=currentName=currentCode="";label.textContent=codeLabel.textContent="";countdown.hidden=true}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopClock();else{renderCountdown();scheduleClock();refreshCalendar()}});
+brand.style.opacity="0";refreshCalendar();scheduleClock();

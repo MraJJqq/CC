@@ -1,0 +1,7 @@
+:root{color-scheme:dark;--ink:#e8f0ff;--mute:#91a0b8;--up:#22b07d;--down:#e5484d;--gold:#f5d76e;--cyan:#bee9f0;--red:#ff4e5e}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;margin:0;background:#0b0e13;color:var(--ink);font:14px/1.4 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+#app{isolation:isolate}
+#page-background{z-index:0;pointer-events:none}
+#kline-host,#kline-host canvas{touch-action:none}
+#signal-track .signal-row{display:flex;gap:clamp(12px,3vw,32px);white-space:nowrap}

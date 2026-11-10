@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Vegas A">
+  <rect width="1024" height="1024" rx="235.52" fill="#0B0B10"/>
+  <g transform="translate(0,-20)">
+    <g fill="#E5405E">
+      <rect x="215" y="404" width="20.48" height="215" rx="10.24" transform="rotate(18 225.24 511.5)"/>
+      <rect x="281" y="404" width="20.48" height="215" rx="10.24" transform="rotate(18 291.24 511.5)"/>
+    </g>
+    <text x="365" y="565" fill="#F4F4F6" font-family="Poppins, Avenir Next, Futura, Helvetica Neue, sans-serif" font-size="158.72" font-style="italic" font-weight="300" letter-spacing="-5">Vegas</text>
+    <text x="805" y="565" fill="#F4F4F6" font-family="Poppins, Avenir Next, Futura, Helvetica Neue, sans-serif" font-size="158.72" font-style="italic" font-weight="700">A</text>
+  </g>
+</svg>

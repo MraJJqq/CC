@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 200 200">
+<rect width="200" height="200" fill="#0b0d12"/>
+<g transform="translate(42 71) scale(.64)">
+<g transform="skewX(-12)">
+<rect x="-30" y="6" width="7" height="74" fill="#ff2d6f"/>
+<rect x="-17" y="6" width="2.5" height="74" fill="#ff2d6f"/>
+<polygon fill="#f2f4f8" points="0,10 5.5,10 22,62.1 38.5,10 44,10 25,70 19,70"/>
+<g fill="none" stroke="#f2f4f8" stroke-width="5" stroke-linejoin="round">
+<path transform="translate(50 0)" d="M2.5 49L39.5 49A18.5 18.5 0 1 0 35.5 60.5"/>
+<g transform="translate(98 0)">
+<circle cx="21" cy="49" r="18.5"/>
+<path d="M39.5 28V78Q39.5 92 22 92Q12 92 6 86"/>
+<g transform="translate(48 0)"><circle cx="21" cy="49" r="18.5"/><path d="M39.5 28V70"/></g>
+<path transform="translate(96 0)" d="M36 36C32 31.5 27 30.5 21 30.5C12 30.5 7.5 35 8 40C8.5 45 14 47 21 49C28 51 34.5 53 34.5 59C34.5 64.5 29 67.5 21 67.5C14 67.5 8 65.5 4.5 61"/>
+</g></g></g></g></svg>
