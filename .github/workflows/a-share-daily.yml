@@ -122,7 +122,7 @@ jobs:
           path: site
   deploy:
     needs: scan-and-cache
-    if: needs.scan-and-cache.outputs.has-data == 'true'
+    if: needs.scan-and-cache.outputs.has-data == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -133,8 +133,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Deploy CC to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
