@@ -187,7 +187,7 @@ def main():
  for p in list(charts.glob("*.json"))+list(charts.glob("*.json.gz")):p.unlink()
  for x in good:
   chart_bars=x["chart_bars"][-CHART_BAR_LIMIT:]
-  write_gzip_json(charts/(x["symbol"]+".json.gz"),{"code":x["code"],"symbol":x["symbol"],"name":x["name"],"valid_bars":x["valid_bars"],"first_date":x["first_date"],"last_date":x["last_date"],"history_complete":True,"bars":chart_bars})
+  write_gzip_json(charts/(x["symbol"]+".json.gz"),{"code":x["code"],"symbol":x["symbol"],"name":x["name"],"valid_bars":x["valid_bars"],"first_date":x["first_date"],"last_date":x["last_date"],"history_complete":len(chart_bars)==x["valid_bars"],"bars":chart_bars})
  universe=[{k:x[k] for k in ("symbol","code","name","valid_bars","first_date","last_date","latest_close","previous_close","median_amount_20d")} for x in good]
  good_by={x["symbol"]:x for x in good};pass_by={x["symbol"]:x for x in passed};error_by={x["symbol"]:x for x in errors}
  cards=[]
