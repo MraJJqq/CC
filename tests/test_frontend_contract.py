@@ -9,6 +9,7 @@ class CCFrontendContractTests(unittest.TestCase):
   cls.logo=(ROOT/"site/assets/modules/logo/logo.js").read_text(encoding="utf-8");cls.tf=(ROOT/"site/assets/modules/timeframe-switch/index.html").read_text(encoding="utf-8")
   cls.ticker=(ROOT/"site/assets/modules/signal-ticker/ticker.js").read_text(encoding="utf-8");cls.kline=(ROOT/"site/assets/kline/tencent-kline-controller.js").read_text(encoding="utf-8")
   cls.scanner=(ROOT/"scripts/a_share_cache.py").read_text(encoding="utf-8")
+  cls.kline_controller=(ROOT/"site/assets/kline/tencent-kline-controller.js").read_text(encoding="utf-8")
  def test_seven_systems_are_hosted(self):
   for x in ('id="kline-host"','id="logo-frame"','id="timeframe-frame"','id="rolling-cards-frame"','id="signal-ticker"'):self.assertIn(x,self.index)
   for x in ("createV6KlineView","createSignalTicker","createTencentKlineController","VEGAS_LOGO_SET_SYMBOL","window.setCardOrder"):self.assertIn(x,self.app)
@@ -38,5 +39,12 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertIn("safe-area-inset-bottom",self.media)
   self.assertIn("height:100%",self.tf_responsive)
   self.assertIn("?v=cc-viewport-20261110-1",self.index)
+ def test_browser_kline_cache_is_bounded(self):
+  self.assertIn("MAX_CACHED_CANDLES=1200",self.kline_controller)
+  self.assertIn("MAX_CACHE_SYMBOLS=40",self.kline_controller)
+  self.assertIn("slice(-MAX_CACHED_CANDLES)",self.kline_controller)
+  self.assertIn("current.slice(MAX_CACHE_SYMBOLS)",self.kline_controller)
+  self.assertIn("schemaVersion===CACHE_SCHEMA",self.kline_controller)
+  self.assertIn('"history_complete":len(chart_bars)==x["valid_bars"]',self.scanner)
  def test_no_second_pages_publisher(self):self.assertFalse((ROOT/".github/workflows/pages.yml").exists())
 if __name__=="__main__":unittest.main()
