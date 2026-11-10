@@ -77,7 +77,7 @@ async function refreshSignals(){
  }catch(error){if(error?.name==="AbortError"||destroyed||token!==signalRefreshToken)return null;ticker.render([],"unavailable");throw error}
  finally{if(signalRefreshController===request)signalRefreshController=null}
 }
-async function boot(){ticker.render([],"waiting");syncFrames();await refreshSignals();if(typeof window.updateQuotes==="function")await refreshCards();window.__CC_READY__=true}
+async function boot(){ticker.render([],"waiting");syncFrames();try{await refreshSignals()}catch(error){console.warn("[CC] signal initialization failed",error);ticker.render([],"unavailable")}if(typeof window.updateQuotes==="function")await refreshCards();window.__CC_READY__=true}
 function stopForegroundTimers(){signalTimer?.();klineTimer?.();cardsTimer?.();signalTimer=klineTimer=cardsTimer=null}
 function startForegroundTimers(){
  if(destroyed||isHidden())return;
