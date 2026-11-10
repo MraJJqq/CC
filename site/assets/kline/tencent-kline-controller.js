@@ -32,12 +32,59 @@ async function decodeChart(response){
   catch(_){throw gzipError}
  }
 }
+
+const MEMORY_MAX_PER_SYMBOL=1200,MEMORY_MAX_SYMBOLS=8;
+const memoryCache=new Map();
+let dbp=null,dbRetryAt=0,storageCheckAt=0;
+async function getDB(onState=()=>{}){
+ if(dbp)return dbp;
+ if(Date.now()<dbRetryAt)return null;
+ dbp=openDB().catch(error=>{
+  dbRetryAt=Date.now()+15000;dbp=null;
+  onState({status:"cache-unavailable",mode:"memory-fallback",retryInMs:15000,error:String(error?.message||error)});
+  return null;
+ });
+ return dbp;
+}
+function trimMemory(){
+ while(memoryCache.size>MEMORY_MAX_SYMBOLS){
+  let oldestKey=null,oldest=Infinity;
+  for(const [key,value] of memoryCache){if((value.updatedAt||0)<oldest){oldest=value.updatedAt||0;oldestKey=key}}
+  if(oldestKey===null)break;
+  memoryCache.delete(oldestKey);
+ }
+}
+function putMemory(key,previous,rows,complete,status,error){
+ const rawCount=(previous?.candles?.length||0)+(rows?.length||0);
+ const data=boundedMerge(previous?.candles||[],rows||[]);
+ const truncated=rawCount>MEMORY_MAX_PER_SYMBOL;
+ memoryCache.set(key,{candles:data,historyComplete:complete===true&&!truncated,updatedAt:Date.now(),latestGapStatus:"not-assessed-by-trading-calendar",requestStatus:status||"memory-fallback",lastError:error?String(error):null,cacheMode:"memory",truncated});
+ trimMemory();
+}
+async function checkStorage(onState=()=>{}){
+ if(Date.now()-storageCheckAt<300000||!navigator.storage?.estimate)return;
+ storageCheckAt=Date.now();
+ try{
+  const estimate=await navigator.storage.estimate(),usage=Number(estimate.usage)||0,quota=Number(estimate.quota)||0,ratio=quota?usage/quota:0;
+  if(ratio>=.8)onState({status:"cache-storage-pressure",usageBytes:usage,quotaBytes:quota,usageRatio:ratio,level:ratio>=.9?"critical":"warning"});
+ }catch(_){}
+}
+function retryDelay(ms,signal){
+ return new Promise((resolve,reject)=>{
+  if(signal.aborted){reject(new DOMException("Aborted","AbortError"));return}
+  const finish=()=>{signal.removeEventListener("abort",abort);resolve()};
+  const timer=setTimeout(finish,ms);
+  function abort(){clearTimeout(timer);signal.removeEventListener("abort",abort);reject(new DOMException("Aborted","AbortError"))}
+  signal.addEventListener("abort",abort,{once:true});
+ });
+}
+
 export function createTencentKlineController({frame,isHidden=()=>document.hidden,onState=()=>{}}={}){
- const dbp=openDB().catch(error=>{onState({symbol:"",timeframe:TIMEFRAME,count:0,historyComplete:false,status:"cache-unavailable",error:String(error?.message||error)});return null}),inflight=new Set();
+ const inflight=new Set();
  let symbol="",candles=[],historyComplete=false,selection=0,activeRequest=null,destroyed=false,paused=false,selectedExpectedDate="";
  const canWork=()=>!destroyed&&!paused&&!isHidden();
  async function read(key){
-  const db=await dbp;if(!db)throw new Error("IndexedDB unavailable");
+  const db=await getDB(onState);if(!db)return memoryCache.get(key)||{candles:[],historyComplete:false,updatedAt:0,latestGapStatus:"pending",cacheMode:"memory"};
   return new Promise((resolve,reject)=>{
    let tx;try{tx=db.transaction(STORE,"readonly")}catch(error){reject(error);return}
    const request=tx.objectStore(STORE).get(key);
@@ -47,7 +94,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   });
  }
  async function write(key,rows,complete,status="ok",error=null){
-  const db=await dbp;if(!db)throw new Error("IndexedDB unavailable");
+  const db=await getDB(onState);if(!db){putMemory(key,memoryCache.get(key)||{},rows,complete,status,error);return;}
   await new Promise((resolve,reject)=>{
    let tx;try{tx=db.transaction(STORE,"readwrite")}catch(e){reject(e);return}
    const store=tx.objectStore(STORE),request=store.get(key);
@@ -77,7 +124,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
    request.onerror=()=>reject(request.error||new Error("IndexedDB cache merge failed"));
    tx.oncomplete=()=>resolve();
    tx.onerror=tx.onabort=()=>reject(tx.error||new Error("IndexedDB write failed"));
-  });
+  }).catch(cacheError=>{putMemory(key,memoryCache.get(key)||{},rows,complete,status,cacheError);onState({symbol,timeframe:TIMEFRAME,count:rows.length,historyComplete:false,status:"cache-write-fallback",mode:"memory",error:String(cacheError?.message||cacheError)});}).then(()=>checkStorage(onState));
  }
  function render(rows,token,complete,status,error=""){
   if(destroyed||token!==selection)return;
@@ -88,8 +135,20 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   onState({symbol,timeframe:TIMEFRAME,count:rows.length,historyComplete:complete,status,error});
  }
  async function fetchSnapshot(nextSymbol,token,signal){
-  const response=await fetch("./data/charts/"+encodeURIComponent(nextSymbol)+".json.gz",{cache:"no-cache",signal});
-  return decodeChart(response);
+  let lastError=null;
+  for(let attempt=0;attempt<3;attempt++){
+   try{
+    const response=await fetch("./data/charts/"+encodeURIComponent(nextSymbol)+".json.gz",{cache:"no-cache",signal});
+    if(response.status===404)throw Object.assign(new Error("Tencent daily chart HTTP 404"),{permanent:true});
+    if(!response.ok)throw new Error("Tencent daily chart HTTP "+response.status);
+    return await decodeChart(response);
+   }catch(error){
+    if(error?.name==="AbortError"||signal.aborted||error?.permanent)throw error;
+    lastError=error;if(attempt===2)break;
+    await retryDelay(350*Math.pow(2,attempt),signal);
+   }
+  }
+  throw lastError||new Error("Tencent daily chart unavailable");
  }
  async function select(nextSymbol,expectedLastDate=selectedExpectedDate){
   if(destroyed||!nextSymbol)return false;
@@ -99,7 +158,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   if(!canWork())return false;
   const key=keyOf(nextSymbol),request=new AbortController();activeRequest=request;inflight.add(request);
   try{
-   let cached;try{cached=await read(key)}catch(cacheError){cached={candles:[],historyComplete:false,updatedAt:0};onState({symbol,timeframe:TIMEFRAME,count:0,historyComplete:false,status:"cache-unavailable",error:String(cacheError?.message||cacheError)})}
+   let cached;try{cached=await read(key)}catch(cacheError){cached=memoryCache.get(key)||{candles:[],historyComplete:false,updatedAt:0};onState({symbol,timeframe:TIMEFRAME,count:cached.candles.length,historyComplete:false,status:"cache-unavailable",mode:"memory-fallback",error:String(cacheError?.message||cacheError)})}
    if(!canWork()||token!==selection)return false;
    candles=boundedMerge(cached.candles);historyComplete=cached.historyComplete===true;
    if(candles.length)render(candles,token,historyComplete,"cache-loaded");

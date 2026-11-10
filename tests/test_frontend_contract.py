@@ -47,4 +47,9 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertIn("schemaVersion===CACHE_SCHEMA",self.kline_controller)
   self.assertIn('"history_complete":len(chart_bars)==x["valid_bars"]',self.scanner)
  def test_no_second_pages_publisher(self):self.assertFalse((ROOT/".github/workflows/pages.yml").exists())
+
+ def test_tencent_cache_uses_media_resilience_mechanisms(self):
+  for marker in ("MEMORY_MAX_PER_SYMBOL=1200","MEMORY_MAX_SYMBOLS=8","mode:\"memory-fallback\"","dbRetryAt=Date.now()+15000","navigator.storage?.estimate","usageRatio:ratio","attempt<3","retryDelay(350*Math.pow(2,attempt)"):
+   self.assertIn(marker,self.kline_controller)
+
 if __name__=="__main__":unittest.main()
