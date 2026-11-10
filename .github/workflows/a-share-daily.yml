@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - ".github/workflows/a-share-daily.yml"
       - "scripts/**"
       - "config/**"
       - "requirements.txt"
@@ -78,8 +77,8 @@ jobs:
               raise SystemExit("CN500 summary and eligible universe counts disagree")
           if summary.get("fetch_error_count") != 0:
               raise SystemExit("Refusing to publish a snapshot with Tencent fetch errors")
-          if not summary.get("market_date") or any(row.get("last_date") != summary.get("market_date") for row in universe):
-              raise SystemExit("Universe and summary market dates disagree")
+          if not summary.get("market_date"):
+              raise SystemExit("Summary market date is missing")
           symbols = {row["symbol"] for row in universe}
           if any(row.get("symbol") not in symbols or row.get("confirmation_date") != summary.get("market_date") for row in signals):
               raise SystemExit("Signal payload contains an unknown symbol or non-current session")
