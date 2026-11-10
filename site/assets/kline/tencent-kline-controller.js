@@ -1,7 +1,9 @@
 const DB_NAME="cc-market-cache",DB_VERSION=1,STORE="candles";
 const CACHE_SOURCE="CC Tencent A-share qfq",TIMEFRAME="1D",CACHE_PREFIX="cc-tencent-qfq:";
+const CACHE_SCHEMA=3,MAX_CACHED_CANDLES=1200,MAX_CACHE_SYMBOLS=40;
 const keyOf=symbol=>CACHE_PREFIX+symbol+":"+TIMEFRAME;
 const merge=(...groups)=>{const rows=new Map();for(const group of groups)for(const candle of group||[])rows.set(candle.t,candle);return [...rows.values()].sort((a,b)=>a.t-b.t)};
+const boundedMerge=(...groups)=>merge(...groups).slice(-MAX_CACHED_CANDLES);
 function normalize(rows){
  return (Array.isArray(rows)?rows:[]).map(row=>({
   t:Date.parse(String(row[0])+"T00:00:00Z"),
@@ -39,7 +41,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   return new Promise((resolve,reject)=>{
    let tx;try{tx=db.transaction(STORE,"readonly")}catch(error){reject(error);return}
    const request=tx.objectStore(STORE).get(key);
-   request.onsuccess=()=>{const value=request.result;resolve(value&&value.source===CACHE_SOURCE&&value.adjust==="qfq"&&value.timeframe===TIMEFRAME&&value.schemaVersion===2&&Array.isArray(value.candles)?value:{candles:[],historyComplete:false,updatedAt:0,latestGapStatus:"pending"})};
+   request.onsuccess=()=>{const value=request.result;resolve(value&&value.source===CACHE_SOURCE&&value.adjust==="qfq"&&value.timeframe===TIMEFRAME&&value.schemaVersion===CACHE_SCHEMA&&Array.isArray(value.candles)?{...value,candles:value.candles.slice(-MAX_CACHED_CANDLES)}:{candles:[],historyComplete:false,updatedAt:0,latestGapStatus:"pending"})};
    request.onerror=()=>reject(request.error||new Error("IndexedDB read failed"));
    tx.onerror=()=>reject(tx.error||new Error("IndexedDB read transaction failed"));
   });
@@ -50,16 +52,27 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
    let tx;try{tx=db.transaction(STORE,"readwrite")}catch(e){reject(e);return}
    const store=tx.objectStore(STORE),request=store.get(key);
    request.onsuccess=()=>{
-    const previous=request.result||{},data=merge(previous.candles,rows);
+    const value=request.result||{};
+    const previous=value.source===CACHE_SOURCE&&value.adjust==="qfq"&&value.timeframe===TIMEFRAME&&value.schemaVersion===CACHE_SCHEMA&&Array.isArray(value.candles)?value.candles:[];
+    const data=boundedMerge(previous,rows);
     const newest=data.at(-1)?.t??null,oldest=data[0]?.t??null;
     store.put({
-     id:key,source:CACHE_SOURCE,adjust:"qfq",timeframe:TIMEFRAME,schemaVersion:2,
-     updatedAt:Date.now(),historyComplete:complete===true||previous.historyComplete===true,
-     historyBoundaryReached:complete===true||previous.historyBoundaryReached===true,
-     historyBoundaryStatus:complete===true||previous.historyBoundaryReached===true?"tencent-full-history-snapshot":"not-yet-confirmed",
+     id:key,source:CACHE_SOURCE,adjust:"qfq",timeframe:TIMEFRAME,schemaVersion:CACHE_SCHEMA,
+     updatedAt:Date.now(),historyComplete:complete===true,
+     historyBoundaryReached:complete===true,
+     historyBoundaryStatus:complete===true?"tencent-full-history-snapshot":"not-yet-confirmed",
      latestGapStatus:"clear",requestStatus:status,lastError:error,
      candleCount:data.length,oldestTimestamp:oldest,newestTimestamp:newest,candles:data
     });
+    const all=store.getAll();
+    all.onsuccess=()=>{
+     const owned=all.result.filter(row=>typeof row.id==="string"&&row.id.startsWith(CACHE_PREFIX));
+     const current=owned.filter(row=>row.schemaVersion===CACHE_SCHEMA&&row.source===CACHE_SOURCE&&row.adjust==="qfq"&&row.timeframe===TIMEFRAME);
+     for(const row of owned)if(row.schemaVersion!==CACHE_SCHEMA||row.source!==CACHE_SOURCE||row.adjust!=="qfq"||row.timeframe!==TIMEFRAME)store.delete(row.id);
+     current.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+     for(const row of current.slice(MAX_CACHE_SYMBOLS))store.delete(row.id);
+    };
+    all.onerror=()=>{tx.abort()};
    };
    request.onerror=()=>reject(request.error||new Error("IndexedDB cache merge failed"));
    tx.oncomplete=()=>resolve();
@@ -88,7 +101,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   try{
    let cached;try{cached=await read(key)}catch(cacheError){cached={candles:[],historyComplete:false,updatedAt:0};onState({symbol,timeframe:TIMEFRAME,count:0,historyComplete:false,status:"cache-unavailable",error:String(cacheError?.message||cacheError)})}
    if(!canWork()||token!==selection)return false;
-   candles=merge(cached.candles);historyComplete=cached.historyComplete===true;
+   candles=boundedMerge(cached.candles);historyComplete=cached.historyComplete===true;
    if(candles.length)render(candles,token,historyComplete,"cache-loaded");
    onState({symbol,timeframe:TIMEFRAME,count:candles.length,historyComplete,status:"cache-loaded"});
    const expectedNewest=selectedExpectedDate?Date.parse(selectedExpectedDate+"T00:00:00Z"):NaN;
@@ -101,14 +114,14 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
    if(!canWork()||token!==selection)return false;
    const fresh=normalize(payload?.bars);
    if(!fresh.length)throw new Error("Tencent returned no valid daily candles");
-   const merged=merge(candles,fresh),complete=payload.history_complete===true;
+   const merged=boundedMerge(candles,fresh),complete=payload.history_complete===true;
    candles=merged;historyComplete=complete;
    render(candles,token,complete,"ready");
    try{await write(key,merged,complete,"snapshot-updated")}catch(cacheError){onState({symbol,timeframe:TIMEFRAME,count:candles.length,historyComplete,status:"cache-write-failed",error:String(cacheError?.message||cacheError)})}
    return true;
   }catch(error){
    if(error?.name==="AbortError"||token!==selection)return false;
-   render(candles,token,historyComplete,candles.length?"request-failed":"request-failed",String(error?.message||error));
+   render(candles,token,historyComplete,"request-failed",String(error?.message||error));
    onState({symbol,timeframe:TIMEFRAME,count:candles.length,historyComplete,status:"request-failed",error:String(error?.message||error)});
    return false;
   }finally{inflight.delete(request);if(activeRequest===request)activeRequest=null}
@@ -127,6 +140,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   if(destroyed)return;destroyed=true;paused=true;selection++;
   for(const request of inflight)request.abort("controller-destroyed");
   inflight.clear();activeRequest=null;
+  dbp.then(db=>db?.close()).catch(()=>{});
  }
  return Object.freeze({select,refresh,setExpectedLastDate,resume,suspend,destroy,get state(){return Object.freeze({symbol,timeframe:TIMEFRAME,count:candles.length,historyComplete})}});
 }
