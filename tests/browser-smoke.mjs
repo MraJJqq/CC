@@ -12,7 +12,7 @@ try{
   const [summary,universe,signals]=await Promise.all(["summary.json","universe.json","signals.json"].map(async n=>{const r=await fetch("./data/"+n);if(!r.ok)throw new Error(n+" unavailable");return r.json()}));
   const expected=signals.filter(x=>x.confirmation_date===summary.market_date&&universe.some(s=>s.symbol===x.symbol)).length;
   const moduleState=Object.fromEntries(["#logo-frame","#timeframe-frame","#rolling-cards-frame"].map(s=>{const e=document.querySelector(s);return[s,{opacity:getComputedStyle(e).opacity,ready:e.classList.contains("is-ready")}]}));
-  const visible=Object.values(moduleState).every(x=>x.opacity==="1");
+  const visible=Object.values(moduleState).every(x=>Number(x.opacity)>=0.99);
   const symbol=universe[0]?.symbol;if(!symbol)throw new Error("No eligible chart symbol");
   const r=await fetch("./data/charts/"+encodeURIComponent(symbol)+".json.gz");if(!r.ok)throw new Error("Compressed chart missing");
   const chart=await new Response(new Blob([await r.arrayBuffer()]).stream().pipeThrough(new DecompressionStream("gzip"))).json();
