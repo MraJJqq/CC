@@ -30,13 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           restored=0
-          while IFS=        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-      - name: Deploy CC frontend
-        id: deployment
-        uses: actions/deploy-pages@v4
-\\t' read -r run_id run_number; do
+          while read -r run_id run_number; do
             [ -n "$run_id" ] || continue
             rm -rf .cc-data-artifact site/data
             if ! gh run download "$run_id" --name "cc-a-share-$run_number" --dir .cc-data-artifact; then
@@ -51,7 +45,7 @@ jobs:
               restored=1
               break
             fi
-          done < <(gh run list --workflow a-share-daily.yml --status success --limit 30 --json databaseId,number --jq '.[] | [.databaseId,.number] | @tsv')
+          done < <(gh run list --workflow a-share-daily.yml --status success --limit 30 --json databaseId,number --jq '.[] | "\(.databaseId) \(.number)"')
           if [ "$restored" -ne 1 ]; then
             echo "No valid A-share Pages data snapshot found; refusing to publish an incomplete site."
             exit 1
