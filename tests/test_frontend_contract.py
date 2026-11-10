@@ -14,7 +14,7 @@ class CCFrontendContractTests(unittest.TestCase):
   for x in ("createV6KlineView","createSignalTicker","createTencentKlineController","VEGAS_LOGO_SET_SYMBOL","window.setCardOrder"):self.assertIn(x,self.app)
   self.assertIn("full-screen-dynamic.css",self.index)
  def test_media_viewport_and_gesture_system_is_present(self):
-  self.assertIn("100dvh",self.media);self.assertIn("safe-area-inset-top",self.media)
+  self.assertIn("100dvh",self.media);self.assertIn("safe-area-inset-bottom",self.media)
   self.assertIn("pointerdown",(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8"))
   self.assertIn("cc-kline-viewport",(ROOT/"site/assets/kline/v6-viewport-state.js").read_text(encoding="utf-8"))
  def test_tencent_qfq_daily_is_configured(self):
