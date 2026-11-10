@@ -17,7 +17,7 @@ try{
  for(const v of [{width:390,height:844},{width:844,height:390},{width:320,height:740},{width:768,height:1024},{width:1024,height:768}]){
   await page.setViewportSize(v);await page.waitForTimeout(80);
   const l=await page.evaluate(()=>Object.fromEntries(["#app","#page-background","#logo-frame","#timeframe-frame","#kline-host","#rolling-cards-frame","#signal-ticker"].map(s=>{const r=document.querySelector(s).getBoundingClientRect();return[s,{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,z:getComputedStyle(document.querySelector(s)).zIndex}]})));
-  for(const s of ["#app","#page-background","#logo-frame","#kline-host","#rolling-cards-frame","#signal-ticker"])if(l[s].width<innerWidth-2||l[s].left< -1||l[s].right>innerWidth+1)throw new Error("Viewport bounds failed: "+s);
+  for(const s of ["#app","#page-background","#logo-frame","#kline-host","#rolling-cards-frame","#signal-ticker"])if(l[s].width<v.width-2||l[s].left< -1||l[s].right>v.width+1)throw new Error("Viewport bounds failed: "+s);
   if(l["#kline-host"].top<l["#logo-frame"].bottom-1||l["#kline-host"].bottom>l["#rolling-cards-frame"].top+1)throw new Error("K-line panel overlap");
   if(l["#rolling-cards-frame"].bottom>l["#signal-ticker"].top+1)throw new Error("Card/ticker overlap");
  }
