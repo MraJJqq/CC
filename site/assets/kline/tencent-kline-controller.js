@@ -1,5 +1,5 @@
 const DB_NAME="cc-market-cache",DB_VERSION=1,STORE="candles";
-const CACHE_SOURCE="CCN Tencent A-share qfq",TIMEFRAME="1D",CACHE_PREFIX="cc-tencent-qfq:";
+const CACHE_SOURCE="CC Tencent A-share qfq",TIMEFRAME="1D",CACHE_PREFIX="cc-tencent-qfq:";
 const keyOf=symbol=>CACHE_PREFIX+symbol+":"+TIMEFRAME;
 const merge=(...groups)=>{const rows=new Map();for(const group of groups)for(const candle of group||[])rows.set(candle.t,candle);return [...rows.values()].sort((a,b)=>a.t-b.t)};
 function normalize(rows){

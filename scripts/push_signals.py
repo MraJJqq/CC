@@ -64,7 +64,7 @@ def main() -> int:
         data=payload,
         headers={
             "Content-Type": "application/json; charset=utf-8",
-            "User-Agent": "CCN-CN500/1.0",
+            "User-Agent": "CC-CN500/1.0",
         },
         method="POST",
     )

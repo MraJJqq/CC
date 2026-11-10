@@ -1,4 +1,4 @@
-name: CCN CodeQL Security Scan
+name: CC CodeQL Security Scan
 
 on:
   push:

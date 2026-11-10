@@ -1,12 +1,12 @@
-name: CCN A-share Daily Cache and Publish
+name: CC A-share Daily Cache and Publish
 # Code pushes do not scan; workflow edits trigger validation of the full pipeline, including browser smoke tests.
-# Existing publisher is triggered after CCN background asset updates; source modules stay unchanged.
+Only scheduled/manual A-share scans publish generated data; source commits do not start scans.
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 4 * * 1-5"
 concurrency:
-  group: ccn-a-share-daily
+  group: cc-a-share-daily
   cancel-in-progress: true
 permissions:
   contents: read
@@ -37,9 +37,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .cache/cn500-tencent-qfq
-          key: ccn-cn500-tencent-qfq-v4-${{ github.run_id }}
+          key: cc-cn500-tencent-qfq-v4-${{ github.run_id }}
           restore-keys: |
-            ccn-cn500-tencent-qfq-v4-
+            cc-cn500-tencent-qfq-v4-
       - name: Backfill or incrementally update Tencent daily history
         id: scan
         if: steps.calendar.outputs.is-trading-day == 'true'
@@ -66,14 +66,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ccn-playwright-chromium-v1.56.1-ubuntu-24.04
+          key: cc-playwright-chromium-v1.56.1-ubuntu-24.04
       - name: Install Chromium system dependencies
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
         run: npx playwright install-deps chromium
       - name: Install Playwright Chromium browser
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install chromium
-      - name: Verify CCN in a real browser
+      - name: Verify CC in a real browser
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
         run: |
           python -m http.server 8765 --directory site >/tmp/cnn-http.log 2>&1 &
@@ -124,12 +124,12 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .cache/cn500-tencent-qfq
-          key: ccn-cn500-tencent-qfq-v4-${{ github.run_id }}
+          key: cc-cn500-tencent-qfq-v4-${{ github.run_id }}
       - name: Upload diagnostics and cache manifest
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ccn-a-share-${{ github.run_number }}
+          name: cc-a-share-${{ github.run_number }}
           path: |
             results/a-share/
             site/data/
@@ -155,6 +155,6 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Deploy CCN to GitHub Pages
+      - name: Deploy CC to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

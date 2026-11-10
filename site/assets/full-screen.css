@@ -12,7 +12,7 @@ html body .tf button{width:100%!important;height:100%!important;min-height:0!imp
 html body .tf button[aria-pressed=true]{font-size:clamp(26px,4vh,34px)!important}
 #kline-host{opacity:1;transition:opacity 1.5s ease-in-out}
 #app.is-symbol-transitioning #kline-host{opacity:0}
-html.page-hidden #rolling-cards-frame,html.page-hidden #signal-ticker{visibility:hidden}
+html.page-hidden #logo-frame,html.page-hidden #timeframe-frame,html.page-hidden #rolling-cards-frame,html.page-hidden #signal-ticker{visibility:hidden;opacity:0}
 @media(orientation:landscape){:root{--cc-header-height:clamp(48px,16dvh,76px);--cc-card-zone:clamp(96px,30dvh,142px);--cc-ticker-height:clamp(18px,5dvh,23px);--cc-kline-gap:24px}#timeframe-frame{bottom:calc(var(--cc-safe-bottom) + var(--cc-ticker-height) + 4px)!important;width:clamp(60px,9vw,88px)!important;height:clamp(64px,20dvh,92px)!important}}
 @media(orientation:landscape) and (max-height:420px){:root{--cc-header-height:clamp(44px,16dvh,68px);--cc-card-zone:clamp(88px,28dvh,118px)}}
 @media(max-width:380px) and (orientation:portrait){#timeframe-frame{width:56px!important}#signal-ticker{left:max(6px,var(--cc-safe-left))!important;right:max(6px,var(--cc-safe-right))!important}}

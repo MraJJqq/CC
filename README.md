@@ -1,6 +1,6 @@
 # VEGAS CC — A-share
 
-CC is a standalone A-share page built from the seven-system source snapshot in `MraJJqq/Media/V6`, with A-share market data and signal generation adapted from the existing CCN implementation.
+CC is a standalone A-share page built from the seven-system source snapshot in `MraJJqq/Media/V6`, with an independent A-share data adapter and signal pipeline.
 
 ## Seven systems
 1. K-line renderer and Vegas EMA overlay — Media V6 renderer, connected to Tencent QFQ daily candles.
