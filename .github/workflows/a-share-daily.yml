@@ -57,45 +57,7 @@ jobs:
         run: python scripts/a_share_cache.py --workers 4 --cache-dir .cache/cn500-tencent-qfq
       - name: Validate complete Pages data payload
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
-        run: |
-          python - <<'PY'
-          import gzip
-          import json
-          from pathlib import Path
-
-          data = Path("site/data")
-          required = ("cards.json", "summary.json", "universe.json", "signals.json", "signals.previous.json", "trading-calendar.json")
-          missing = [name for name in required if not (data / name).is_file()]
-          if missing:
-              raise SystemExit(f"Missing Pages data files: {missing}")
-
-          load = lambda name: json.loads((data / name).read_text(encoding="utf-8"))
-          cards, summary, universe, signals = (load("cards.json"), load("summary.json"), load("universe.json"), load("signals.json"))
-          if len(cards) != 500 or len({row["symbol"] for row in cards}) != 500:
-              raise SystemExit("CN500 cards payload must contain exactly 500 unique symbols")
-          if summary.get("universe_size") != 500 or summary.get("eligible_count") != len(universe):
-              raise SystemExit("CN500 summary and eligible universe counts disagree")
-          if summary.get("fetch_error_count") != 0:
-              raise SystemExit("Refusing to publish a snapshot with Tencent fetch errors")
-          if not summary.get("market_date"):
-              raise SystemExit("Summary market date is missing")
-          symbols = {row["symbol"] for row in universe}
-          if any(row.get("symbol") not in symbols or row.get("confirmation_date") != summary.get("market_date") for row in signals):
-              raise SystemExit("Signal payload contains an unknown symbol or non-current session")
-          charts = data / "charts"
-          chart_files = list(charts.glob("*.json.gz"))
-          if len(chart_files) != len(universe):
-              raise SystemExit(f"Expected {len(universe)} compressed charts, found {len(chart_files)}")
-          for stock in universe:
-              path = charts / f'{stock["symbol"]}.json.gz'
-              if not path.is_file():
-                  raise SystemExit(f"Missing compressed chart: {path.name}")
-              with gzip.open(path, "rt", encoding="utf-8") as handle:
-                  chart = json.load(handle)
-              if chart.get("symbol") != stock["symbol"] or chart.get("last_date") != stock["last_date"] or not chart.get("bars"):
-                  raise SystemExit(f"Invalid or date-mismatched compressed chart payload: {path.name}")
-          print(f"Pages payload verified: 500 CN500 cards, {len(universe)} eligible charts, {len(signals)} current-session signals.")
-          PY
+        run: python scripts/validate_pages_payload.py
       - name: Push CN500 daily signals to Bark
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
         env:
