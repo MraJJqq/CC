@@ -40,6 +40,11 @@ try{
   if(counts.tickerCycles<1)throw new Error("Ticker did not recover after reload");
   console.log("CC reload pass "+pass+":",JSON.stringify(counts));
  }
+ await page.evaluate(()=>{window.dispatchEvent(new PageTransitionEvent("pagehide",{persisted:true}));window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true}))});
+ await page.waitForFunction(()=>document.documentElement.classList.contains("page-hidden")===false);
+ const restored=await page.evaluate(()=>({ticker:document.querySelector("#signal-track").textContent.trim(),canvas:document.querySelectorAll("#kline-host>canvas").length,frames:document.querySelectorAll("#logo-frame,#timeframe-frame,#rolling-cards-frame").length}));
+ if(!restored.ticker||restored.canvas!==2||restored.frames!==3)throw new Error("BFCache-style pageshow recovery failed: "+JSON.stringify(restored));
  if(errors.length)throw new Error(errors.join(" | "));
+ console.log("CC BFCache-style recovery:",JSON.stringify(restored));
  console.log("CC browser smoke passed: Tencent daily chart, CN500 signal cards, ticker, five viewport layouts, and two reload cycles.");
 }finally{await browser.close()}

@@ -1,13 +1,10 @@
 name: CC A-share Daily Cache and Publish
-# Scheduled/manual A-share scans publish generated data. Source commits do not start scans.
+# Tencent scans are independent from frontend-only Pages releases.
 on:
-  # A workflow-definition update can be used for a one-time controlled import.
-  # Ordinary application/source commits do not start a Tencent scan.
   push:
     branches: [main]
     paths:
       - ".github/workflows/a-share-daily.yml"
-      - "site/**"
       - "scripts/**"
       - "config/**"
       - "requirements.txt"
@@ -22,7 +19,7 @@ on:
     - cron: "0 4 * * 1-5"
 concurrency:
   group: cc-a-share-daily
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -59,16 +56,9 @@ jobs:
         id: scan
         if: steps.calendar.outputs.is-trading-day == 'true'
         run: python scripts/a_share_cache.py --workers 4 --cache-dir .cache/cn500-tencent-qfq
-      - name: Push CN500 daily signals to Bark
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
-        env:
-          BARK_KEY: ${{ secrets.BARK_KEY }}
-          BARK_SERVER: ${{ secrets.BARK_SERVER }}
-        run: python scripts/push_signals.py
       - name: Validate complete Pages data payload
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
         run: |
-          python - <<'PY'
           import gzip
           import json
           from pathlib import Path
@@ -87,6 +77,8 @@ jobs:
               raise SystemExit("CN500 summary and eligible universe counts disagree")
           if summary.get("fetch_error_count") != 0:
               raise SystemExit("Refusing to publish a snapshot with Tencent fetch errors")
+          if not summary.get("market_date") or any(row.get("last_date") != summary.get("market_date") for row in universe):
+              raise SystemExit("Universe and summary market dates disagree")
           symbols = {row["symbol"] for row in universe}
           if any(row.get("symbol") not in symbols or row.get("confirmation_date") != summary.get("market_date") for row in signals):
               raise SystemExit("Signal payload contains an unknown symbol or non-current session")
@@ -100,10 +92,15 @@ jobs:
                   raise SystemExit(f"Missing compressed chart: {path.name}")
               with gzip.open(path, "rt", encoding="utf-8") as handle:
                   chart = json.load(handle)
-              if chart.get("symbol") != stock["symbol"] or not chart.get("bars"):
-                  raise SystemExit(f"Invalid compressed chart payload: {path.name}")
+              if chart.get("symbol") != stock["symbol"] or chart.get("last_date") != stock["last_date"] or not chart.get("bars"):
+                  raise SystemExit(f"Invalid or date-mismatched compressed chart payload: {path.name}")
           print(f"Pages payload verified: 500 CN500 cards, {len(universe)} eligible charts, {len(signals)} current-session signals.")
-          PY
+      - name: Push CN500 daily signals to Bark
+        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
+        env:
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          BARK_SERVER: ${{ secrets.BARK_SERVER }}
+        run: python scripts/push_signals.py
       - name: Save Tencent cache snapshot
         if: always() && steps.scan.outcome != 'cancelled'
         uses: actions/cache/save@v4
@@ -129,6 +126,9 @@ jobs:
     needs: scan-and-cache
     if: needs.scan-and-cache.outputs.has-data == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
+    concurrency:
+      group: cc-pages-deploy
+      cancel-in-progress: false
     permissions:
       contents: read
       pages: write

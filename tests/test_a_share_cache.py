@@ -1,9 +1,14 @@
 import unittest
 import pandas as pd
+import json
+import tempfile
+from pathlib import Path
 from datetime import date
+from unittest.mock import patch
 from scripts.trading_calendar import is_a_share_trading_day,previous_a_share_trading_day,upcoming_trading_days
-from scripts.a_share_cache import require_complete_fetch
+from scripts.a_share_cache import require_complete_fetch,fetch_cached,cache_paths,atomic_json,SOURCE,SCHEMA
 from scripts.a_share_cache import to_tencent_symbol,parse_tencent_quote_text,merge_frames,through_date,valid_bars,excluded_name,ema,normalize
+
 class TradingCalendarTests(unittest.TestCase):
  def test_weekend_is_not_a_trading_day(self):
   self.assertFalse(is_a_share_trading_day(date(2026, 11, 7)))
@@ -53,11 +58,39 @@ class TencentCacheTests(unittest.TestCase):
   x=ema(pd.Series(range(1,20),dtype=float),12);self.assertTrue(pd.isna(x.iloc[10]));self.assertTrue(pd.notna(x.iloc[11]))
  def test_names(self):
   self.assertTrue(excluded_name("ST某某"));self.assertTrue(excluded_name("某某退"));self.assertFalse(excluded_name("贵州茅台"))
+ def test_corrupt_cache_is_rebuilt_from_tencent(self):
+  with tempfile.TemporaryDirectory() as directory:
+   data,meta=cache_paths(directory,"sh600000")
+   data.write_bytes(b"not a gzip file")
+   atomic_json(meta,{"schema_version":SCHEMA,"source":SOURCE,"adjust":"qfq","symbol":"sh600000","frequency":"daily","complete":True})
+   fresh=pd.DataFrame([{"date":"2024-01-02","open":10,"high":11,"low":9,"close":10,"volume":100,"amount":1000}])
+   with patch("scripts.a_share_cache.fetch_tencent",return_value=fresh) as fetch:
+    bars,info=fetch_cached("sh600000","2024-01-02",directory)
+   self.assertEqual(len(bars),1)
+   self.assertEqual(fetch.call_args.args[1],"19900101")
+   self.assertTrue(info["complete"])
+   self.assertEqual(len(pd.read_csv(data,compression="gzip")),1)
+   self.assertTrue(json.loads(meta.read_text(encoding="utf-8"))["complete"])
+
 class TencentNameParserTests(unittest.TestCase):
  def test_parse_tencent_quote_text(self):
   raw='v_s_sh600000="1~浦发银行~600000~10.0";v_s_sz000001="1~平安银行~000001~11.0";'
   names=parse_tencent_quote_text(raw)
   self.assertEqual(names["sh600000"],"浦发银行")
   self.assertEqual(names["sz000001"],"平安银行")
+
+class WorkflowReliabilityTests(unittest.TestCase):
+ def test_frontend_publish_is_decoupled_from_tencent_scan(self):
+  root=Path(__file__).resolve().parents[1]
+  scan=(root/".github/workflows/a-share-daily.yml").read_text(encoding="utf-8")
+  publish=(root/".github/workflows/pages-publish.yml").read_text(encoding="utf-8")
+  self.assertNotIn('      - "site/**"',scan)
+  self.assertIn('      - "site/**"',publish)
+  self.assertIn("cancel-in-progress: false",scan)
+  self.assertIn("cancel-in-progress: false",publish)
+ def test_bark_only_runs_after_payload_validation(self):
+  root=Path(__file__).resolve().parents[1]
+  scan=(root/".github/workflows/a-share-daily.yml").read_text(encoding="utf-8")
+  self.assertLess(scan.index("Validate complete Pages data payload"),scan.index("Push CN500 daily signals to Bark"))
 
 if __name__=="__main__":unittest.main()
