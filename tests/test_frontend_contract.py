@@ -38,7 +38,7 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertIn("100dvh",self.media)
   self.assertIn("safe-area-inset-bottom",self.media)
   self.assertIn("height:100%",self.tf_responsive)
-  self.assertIn("?v=cc-viewport-20261110-1",self.index)
+  self.assertIn("?v=cc-clean-20261110-2",self.index)
  def test_browser_kline_cache_is_bounded(self):
   self.assertIn("MAX_CACHED_CANDLES=1200",self.kline_controller)
   self.assertIn("MAX_CACHE_SYMBOLS=40",self.kline_controller)
@@ -53,3 +53,14 @@ class CCFrontendContractTests(unittest.TestCase):
    self.assertIn(marker,self.kline_controller)
 
 if __name__=="__main__":unittest.main()
+
+ def test_residual_asset_cache_is_busted_across_page_and_modules(self):
+  logo_html=(ROOT/"site/assets/modules/logo/logo.html").read_text(encoding="utf-8")
+  view=(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8")
+  for content in (self.index,logo_html):
+   self.assertNotIn("cc-viewport-20261110-1",content)
+   self.assertIn("cc-clean-20261110-2",content)
+  self.assertIn("?v=cc-clean-20261110-2",self.app)
+  self.assertIn("?v=cc-clean-20261110-2",view)
+ def test_kline_controller_destroy_is_safe_before_indexeddb_opens(self):
+  self.assertIn("if(dbp)dbp.then(db=>db?.close()).catch(()=>{});",self.kline_controller)

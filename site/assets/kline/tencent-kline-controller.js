@@ -199,7 +199,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
   if(destroyed)return;destroyed=true;paused=true;selection++;
   for(const request of inflight)request.abort("controller-destroyed");
   inflight.clear();activeRequest=null;
-  dbp.then(db=>db?.close()).catch(()=>{});
+  if(dbp)dbp.then(db=>db?.close()).catch(()=>{});
  }
  return Object.freeze({select,refresh,setExpectedLastDate,resume,suspend,destroy,get state(){return Object.freeze({symbol,timeframe:TIMEFRAME,count:candles.length,historyComplete})}});
 }
