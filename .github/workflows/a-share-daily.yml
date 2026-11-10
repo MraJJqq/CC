@@ -1,6 +1,5 @@
 name: CC A-share Daily Cache and Publish
-# Code pushes do not scan; workflow edits trigger validation of the full pipeline, including browser smoke tests.
-Only scheduled/manual A-share scans publish generated data; source commits do not start scans.
+# Scheduled/manual A-share scans publish generated data. Source commits do not start scans.
 on:
   workflow_dispatch:
   schedule:
