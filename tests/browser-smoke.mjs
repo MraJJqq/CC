@@ -5,7 +5,7 @@ try{
  await page.goto("http://127.0.0.1:8765/",{waitUntil:"domcontentloaded"});
  await page.waitForFunction(()=>typeof window.setCardOrder==="function",{timeout:30000});
  await page.waitForFunction(()=>window.__CC_READY__===true,{timeout:30000});
- await page.waitForFunction(()=>["#logo-frame","#timeframe-frame","#rolling-cards-frame"].every(s=>document.querySelector(s)?.classList.contains("is-ready")),{timeout:15000});
+ await page.waitForFunction(()=>["#logo-frame","#timeframe-frame","#rolling-cards-frame"].every(s=>{const e=document.querySelector(s);return e?.classList.contains("is-ready")&&Number(getComputedStyle(e).opacity)>=0.99}),{timeout:15000});
  const data=await page.evaluate(async()=>{
   const [summary,universe,signals]=await Promise.all(["summary.json","universe.json","signals.json"].map(async n=>{const r=await fetch("./data/"+n);if(!r.ok)throw new Error(n+" unavailable");return r.json()}));
   const expected=signals.filter(x=>x.confirmation_date===summary.market_date&&universe.some(s=>s.symbol===x.symbol)).length;
@@ -15,6 +15,7 @@ try{
   const chart=await new Response(new Blob([await r.arrayBuffer()]).stream().pipeThrough(new DecompressionStream("gzip"))).json();
   return {expected,active:document.querySelectorAll("#vp>.c").length,bars:chart.bars?.length||0,ticker:document.querySelector("#signal-track").textContent.trim(),visible};
  });
+ console.log("CC browser diagnostics:",JSON.stringify(data));
  if(data.bars<1||data.active!==data.expected||!data.ticker||!data.visible)throw new Error("A-share data/card/ticker/module visibility contract failed");
  for(const v of [{width:390,height:844},{width:844,height:390},{width:320,height:740},{width:768,height:1024},{width:1024,height:768}]){
   await page.setViewportSize(v);await page.waitForTimeout(80);
