@@ -52,8 +52,6 @@ class CCFrontendContractTests(unittest.TestCase):
   for marker in ("MEMORY_MAX_PER_SYMBOL=1200","MEMORY_MAX_SYMBOLS=8","mode:\"memory-fallback\"","dbRetryAt=Date.now()+15000","navigator.storage?.estimate","usageRatio:ratio","attempt<3","retryDelay(350*Math.pow(2,attempt)"):
    self.assertIn(marker,self.kline_controller)
 
-if __name__=="__main__":unittest.main()
-
  def test_residual_asset_cache_is_busted_across_page_and_modules(self):
   logo_html=(ROOT/"site/assets/modules/logo/logo.html").read_text(encoding="utf-8")
   view=(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8")
@@ -64,3 +62,6 @@ if __name__=="__main__":unittest.main()
   self.assertIn("?v=cc-clean-20261110-2",view)
  def test_kline_controller_destroy_is_safe_before_indexeddb_opens(self):
   self.assertIn("if(dbp)dbp.then(db=>db?.close()).catch(()=>{});",self.kline_controller)
+
+
+if __name__=="__main__":unittest.main()
