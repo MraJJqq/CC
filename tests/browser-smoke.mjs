@@ -11,16 +11,20 @@ try{
  await page.waitForFunction(()=>["#logo-frame","#timeframe-frame","#rolling-cards-frame"].every(s=>{const e=document.querySelector(s);return e?.classList.contains("is-ready")&&Number(getComputedStyle(e).opacity)>=0.99}),{timeout:15000});
  const data=await page.evaluate(async()=>{
   const [summary,universe,signals]=await Promise.all(["summary.json","universe.json","signals.json"].map(async n=>{const r=await fetch("./data/"+n);if(!r.ok)throw new Error(n+" unavailable");return r.json()}));
+  const cardsResponse=await fetch("./data/cards.json");if(!cardsResponse.ok)throw new Error("cards.json unavailable");const cards=await cardsResponse.json();
   const expected=signals.filter(x=>x.confirmation_date===summary.market_date&&universe.some(s=>s.symbol===x.symbol)).length;
   const moduleState=Object.fromEntries(["#logo-frame","#timeframe-frame","#rolling-cards-frame"].map(s=>{const e=document.querySelector(s);return[s,{opacity:getComputedStyle(e).opacity,ready:e.classList.contains("is-ready")}]}));
   const visible=Object.values(moduleState).every(x=>Number(x.opacity)>=0.99);
   const symbol=universe[0]?.symbol;if(!symbol)throw new Error("No eligible chart symbol");
   const r=await fetch("./data/charts/"+encodeURIComponent(symbol)+".json.gz");if(!r.ok)throw new Error("Compressed chart missing");
   const chart=await new Response(new Blob([await r.arrayBuffer()]).stream().pipeThrough(new DecompressionStream("gzip"))).json();
-  return {expected,active:document.querySelectorAll("#vp>.c").length,bars:chart.bars?.length||0,cardSnapshotAt:window.__CC_CARD_SNAPSHOT_AT__||0,ticker:document.querySelector("#signal-track").textContent.trim(),visible,visibilityState:document.visibilityState,moduleState};
+  return {expected,active:document.querySelectorAll("#vp>.c").length,bars:chart.bars?.length||0,cardSnapshotAt:window.__CC_CARD_SNAPSHOT_AT__||0,allCardSymbols:cards.map(x=>x.symbol),signalSymbols:next.map(x=>x.symbol),ticker:document.querySelector("#signal-track").textContent.trim(),visible,visibilityState:document.visibilityState,moduleState};
  });
  console.log("CC browser diagnostics:",JSON.stringify(data));
  if(data.bars<1||data.active!==data.expected||!data.cardSnapshotAt||!data.ticker||!data.visible)throw new Error("A-share data/card/ticker/module visibility contract failed");
+ const stress=await page.evaluate(({allCardSymbols,signalSymbols})=>{const start=performance.now();const accepted=window.setCardOrder(allCardSymbols);const elapsed=performance.now()-start;const count=document.querySelectorAll("#vp>.c").length;const restored=window.setCardOrder(signalSymbols);return{accepted,elapsed,count,restored,restoredCount:document.querySelectorAll("#vp>.c").length}},{allCardSymbols:data.allCardSymbols,signalSymbols:data.signalSymbols});
+ if(!stress.accepted||stress.count!==500||!stress.restored||stress.restoredCount!==data.expected||stress.elapsed>5000)throw new Error("CN500 500-card stress check failed: "+JSON.stringify(stress));
+ console.log("CC CN500 500-card DOM stress:",JSON.stringify(stress));
  for(const v of [{width:390,height:844},{width:844,height:390},{width:320,height:740},{width:768,height:1024},{width:1024,height:768}]){
   await page.setViewportSize(v);await page.waitForTimeout(80);
   const l=await page.evaluate(()=>Object.fromEntries(["#app","#page-background","#logo-frame","#timeframe-frame","#kline-host","#rolling-cards-frame","#signal-ticker"].map(s=>{const r=document.querySelector(s).getBoundingClientRect();return[s,{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,z:getComputedStyle(document.querySelector(s)).zIndex}]})));
