@@ -59,6 +59,7 @@ jobs:
       - name: Validate complete Pages data payload
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
         run: |
+          python - <<'PY'
           import gzip
           import json
           from pathlib import Path
@@ -95,6 +96,7 @@ jobs:
               if chart.get("symbol") != stock["symbol"] or chart.get("last_date") != stock["last_date"] or not chart.get("bars"):
                   raise SystemExit(f"Invalid or date-mismatched compressed chart payload: {path.name}")
           print(f"Pages payload verified: 500 CN500 cards, {len(universe)} eligible charts, {len(signals)} current-session signals.")
+          PY
       - name: Push CN500 daily signals to Bark
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
         env:
