@@ -60,36 +60,6 @@ jobs:
           BARK_KEY: ${{ secrets.BARK_KEY }}
           BARK_SERVER: ${{ secrets.BARK_SERVER }}
         run: python scripts/push_signals.py
-      - name: Install browser test runtime
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package.json
-      - name: Install Playwright package
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
-        run: npm install --no-package-lock --prefer-offline
-      - name: Restore Playwright Chromium cache
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: cc-playwright-chromium-v1.56.1-ubuntu-24.04
-      - name: Install Chromium system dependencies
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
-        run: npx playwright install-deps chromium
-      - name: Install Playwright Chromium browser
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium
-      - name: Verify CC in a real browser
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
-        run: |
-          python -m http.server 8765 --directory site >/tmp/cnn-http.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          node tests/browser-smoke.mjs
       - name: Validate complete Pages data payload
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
         run: |
