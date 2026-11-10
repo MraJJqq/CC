@@ -30,5 +30,16 @@ try{
   if(l["#timeframe-frame"].left<0||l["#timeframe-frame"].right>v.width+1||l["#timeframe-frame"].bottom>v.height+1)throw new Error("Timeframe safe-area bounds failed");
  }
  if(errors.length)throw new Error(errors.join(" | "));
- console.log("CC browser smoke passed: Tencent daily chart, CN500 signal cards, ticker, and five viewport layouts.");
+ for(let pass=1;pass<=2;pass++){
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.waitForFunction(()=>window.__CC_READY__===true&&typeof window.setCardOrder==="function",{timeout:30000});
+  await page.waitForFunction(()=>["#logo-frame","#timeframe-frame","#rolling-cards-frame"].every(s=>document.querySelector(s)?.classList.contains("is-ready")),{timeout:15000});
+  const counts=await page.evaluate(()=>({mainCanvas:document.querySelectorAll("#kline-host>canvas").length,overlayCanvas:document.querySelectorAll("#kline-host>canvas[aria-hidden=true]").length,logoFrames:document.querySelectorAll("#logo-frame").length,timeframeFrames:document.querySelectorAll("#timeframe-frame").length,cardNodes:document.querySelectorAll("#vp>.c").length,tickerCycles:document.querySelectorAll("#signal-track>.signal-cycle").length}));
+  if(counts.mainCanvas!==2||counts.overlayCanvas!==1||counts.logoFrames!==1||counts.timeframeFrames!==1)throw new Error("Reload left duplicate core module DOM: "+JSON.stringify(counts));
+  if(counts.cardNodes!==data.expected)throw new Error("Reload left stale/duplicate card DOM: "+JSON.stringify(counts));
+  if(counts.tickerCycles<1)throw new Error("Ticker did not recover after reload");
+  console.log("CC reload pass "+pass+":",JSON.stringify(counts));
+ }
+ if(errors.length)throw new Error(errors.join(" | "));
+ console.log("CC browser smoke passed: Tencent daily chart, CN500 signal cards, ticker, five viewport layouts, and two reload cycles.");
 }finally{await browser.close()}

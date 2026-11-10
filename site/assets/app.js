@@ -5,7 +5,7 @@ import {createPageLifecycle} from "./shared/page-lifecycle-v6.js";
 import {createSignalTicker} from "./modules/signal-ticker/ticker.js";
 const DATA="./data/",$=id=>document.getElementById(id),lifecycle=createLifecycleScope();
 window.__CC_READY__=false;
-let pageLifecycle=null,universe=[],signalStocks=[],carouselIndex=0,carouselTimer=null,transitionTimer=null,transitionToken=0,destroyed=false,lastSignalPayload="";
+let pageLifecycle=null,universe=[],signalStocks=[],carouselIndex=0,carouselTimer=null,transitionTimer=null,transitionToken=0,destroyed=false,lastSignalPayload="",signalRefreshToken=0,signalRefreshController=null;
 const interactionLocks=new Set();let signalTimer=null,klineTimer=null;
 const ROTATION_START_KEY="cc-last-random-start",logoFrame=$("logo-frame"),timeframeFrame=$("timeframe-frame");
 const isHidden=()=>pageLifecycle?pageLifecycle.isSuspended():document.hidden;
@@ -25,7 +25,7 @@ function sendLogo(item,market){
  const code=String(item.code||item.symbol||"").replace(/^(SH|SZ|BJ)/,"");
  sendFrame(logoFrame,{type:"VEGAS_LOGO_SET_SYMBOL",symbol:String(item.symbol||code),name:String(item.name||market?.name||code),code,timeframe:"1D"});
 }
-function syncFrames(){sendTimeframe();const item=signalStocks[carouselIndex];if(item)sendLogo(item,universe.find(s=>s.symbol===item.symbol))}
+function syncFrames(){sendTimeframe();const item=signalStocks[carouselIndex];sendLogo(item||null,item?universe.find(s=>s.symbol===item.symbol):null)}
 function revealFrame(frame){if(frame?.contentWindow?.document?.readyState==="complete")frame.classList.add("is-ready")}
 function clearSelectedStock(){sendLogo(null);chart.setCandles([]);chart.setVegasEmaCandles([])}
 function stopCarousel(){if(carouselTimer!==null)clearTimeout(carouselTimer);if(transitionTimer!==null)clearTimeout(transitionTimer);carouselTimer=transitionTimer=null;transitionToken++;$("app").classList.remove("is-symbol-transitioning")}
@@ -46,8 +46,12 @@ async function transitionToIndex(index,{initial=false}={}){
 function scheduleNext(){if(destroyed||isHidden()||interactionLocks.size||signalStocks.length<2)return;if(carouselTimer!==null)clearTimeout(carouselTimer);carouselTimer=setTimeout(()=>{carouselTimer=null;void transitionToIndex(carouselIndex+1)},7000)}
 function startCarousel(index=0){stopCarousel();void transitionToIndex(index,{initial:true})}
 async function refreshSignals(){
+ if(destroyed)return null;
+ const token=++signalRefreshToken;signalRefreshController?.abort();
+ const request=new AbortController();signalRefreshController=request;
  try{
-  const [summary,stocks,today]=await Promise.all(["summary.json","universe.json","signals.json"].map(n=>fetch(DATA+n,{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("data "+n+" unavailable");return r.json()})));
+  const [summary,stocks,today]=await Promise.all(["summary.json","universe.json","signals.json"].map(n=>fetch(DATA+n,{cache:"no-store",signal:request.signal}).then(r=>{if(!r.ok)throw new Error("data "+n+" unavailable");return r.json()})));
+  if(destroyed||token!==signalRefreshToken)return null;
   if(!summary?.market_date||!Array.isArray(stocks)||!Array.isArray(today))throw new Error("CC market snapshot incomplete");
   universe=stocks;const current=signalStocks[carouselIndex];if(current){const m=universe.find(s=>s.symbol===current.symbol);controller.setExpectedLastDate(m?.last_date||"")}
   const next=today.filter(x=>x.confirmation_date===summary.market_date&&universe.some(s=>s.symbol===x.symbol));
@@ -56,7 +60,8 @@ async function refreshSignals(){
    if(typeof window.setCardOrder==="function"){if(!window.setCardOrder(signalStocks.map(x=>x.symbol)))console.error("[CC] card order rejected");else $("rolling-cards-frame").classList.add("is-ready")}
    if(signalStocks.length)startCarousel(0);else{stopCarousel();clearSelectedStock()}
   }return summary;
- }catch(error){ticker.render([],"unavailable");throw error}
+ }catch(error){if(error?.name==="AbortError"||destroyed||token!==signalRefreshToken)return null;ticker.render([],"unavailable");throw error}
+ finally{if(signalRefreshController===request)signalRefreshController=null}
 }
 async function boot(){ticker.render([],"waiting");syncFrames();await refreshSignals();window.__CC_READY__=true}
 function stopForegroundTimers(){signalTimer?.();klineTimer?.();signalTimer=klineTimer=null}
@@ -67,14 +72,15 @@ function startForegroundTimers(){
 }
 function suspendRuntime(){if(destroyed)return;document.documentElement.classList.add("page-hidden");stopCarousel();stopForegroundTimers();interactionLocks.clear();controller.suspend();ticker.setPaused(true)}
 function resumeRuntime(){if(destroyed||isHidden())return;document.documentElement.classList.remove("page-hidden");controller.resume();ticker.setPaused(false);startForegroundTimers();if(signalStocks.length&&!interactionLocks.size)scheduleNext()}
-function teardown(){if(destroyed)return;destroyed=true;stopCarousel();stopForegroundTimers();interactionLocks.clear();pageLifecycle?.destroy();controller.destroy();chart.destroy();ticker.destroy();lifecycle.destroy()}
+function teardown(){if(destroyed)return;destroyed=true;signalRefreshToken++;signalRefreshController?.abort();signalRefreshController=null;stopCarousel();stopForegroundTimers();interactionLocks.clear();pageLifecycle?.destroy();controller.destroy();chart.destroy();ticker.destroy();lifecycle.destroy()}
 pageLifecycle=createPageLifecycle({documentRef:document,windowRef:window,onSuspend:suspendRuntime,onResume:resumeRuntime,onPageHideFinal:teardown});
 document.documentElement.classList.toggle("page-hidden",isHidden());
 lifecycle.listen(logoFrame,"load",()=>{logoFrame.classList.add("is-ready");syncFrames()});lifecycle.listen(timeframeFrame,"load",()=>{timeframeFrame.classList.add("is-ready");syncFrames()});revealFrame(logoFrame);revealFrame(timeframeFrame);
 lifecycle.listen(window,"vegas-cards-ready",()=>{if(typeof window.setCardOrder==="function"&&window.setCardOrder(signalStocks.map(x=>x.symbol)))$("rolling-cards-frame").classList.add("is-ready")});
 lifecycle.listen(window,"message",event=>{
  if(event.origin!==location.origin)return;
- if(event.source===timeframeFrame?.contentWindow&&event.data?.type==="VEGAS_TIMEFRAME_SELECT"){sendTimeframe();return}
+ if(event.source===timeframeFrame?.contentWindow){if(event.data?.type==="VEGAS_TIMEFRAME_SELECT"||event.data?.type==="VEGAS_TIMEFRAME_READY")sendTimeframe();return}
+ if(event.source===logoFrame?.contentWindow&&event.data?.type==="VEGAS_LOGO_READY"){syncFrames();return}
  if(event.source!==window)return;
  if(event.data?.type==="VEGAS_CARD_INTERACTION"&&typeof event.data.active==="boolean"){setInteractionLock("rolling-cards",event.data.active);return}
  if(event.data?.type==="VEGAS_CARD_SELECT"){const symbol=String(event.data.symbol||""),index=signalStocks.findIndex(x=>x.symbol===symbol);if(index>=0)void transitionToIndex(index)}

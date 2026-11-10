@@ -176,12 +176,16 @@ ring.addEventListener("wheel",function(e){
 },{passive:false});
 
 /* ---- 系统事件：切后台 / 滚出可视区 / 尺寸变化 ---- */
+var intersectionObserver=null,resizeObserver=null,resizeFallback=null;
 document.addEventListener("visibilitychange",function(){if(document.hidden)stop();else wake()});
-if("IntersectionObserver" in window)new IntersectionObserver(function(en){vis=en[0].isIntersecting;if(vis)wake()}).observe(ring);
+if("IntersectionObserver" in window){intersectionObserver=new IntersectionObserver(function(en){vis=en[0].isIntersecting;if(vis)wake()});intersectionObserver.observe(ring)}
 var lr=0;
 function relayout(){lr=0;layout();wake()}
-if("ResizeObserver" in window)new ResizeObserver(function(){if(!lr)lr=requestAnimationFrame(relayout)}).observe(vp);
-else addEventListener("resize",function(){if(!lr)lr=requestAnimationFrame(relayout)});
+if("ResizeObserver" in window){resizeObserver=new ResizeObserver(function(){if(!lr)lr=requestAnimationFrame(relayout)});resizeObserver.observe(vp)}
+else{resizeFallback=function(){if(!lr)lr=requestAnimationFrame(relayout)};addEventListener("resize",resizeFallback)}
+function releaseDrag(){if(pid!==-1&&drag)window.parent.postMessage({type:"VEGAS_CARD_INTERACTION",active:false},"https://mrajjqq.github.io");pid=-1;drag=false;tapSymbol=null;sn=0;vel=0}
+window.addEventListener("pagehide",function(e){stop();releaseDrag();if(!e.persisted){intersectionObserver?.disconnect();resizeObserver?.disconnect();if(resizeFallback)removeEventListener("resize",resizeFallback);if(lr)cancelAnimationFrame(lr);lr=0}});
+window.addEventListener("pageshow",function(){if(!document.hidden)wake()});
 
 /* ---- 与父页面共用同一份随机轮播顺序 ---- */
 window.setCardOrder=function(symbols){

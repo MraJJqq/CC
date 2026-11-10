@@ -10,4 +10,5 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent
 const button=document.querySelector(".tf button");
 window.addEventListener("message",event=>{if(event.origin!==location.origin||event.source!==window.parent)return;const d=event.data;if(d?.type==="VEGAS_TIMEFRAME_SET"&&d.timeframe==="1D")button.setAttribute("aria-pressed","true")});
 button.addEventListener("click",()=>window.parent.postMessage({type:"VEGAS_TIMEFRAME_SELECT",timeframe:"1D"},location.origin));
+window.addEventListener("pageshow",()=>window.parent.postMessage({type:"VEGAS_TIMEFRAME_READY",timeframe:"1D"},location.origin));
 </script></body></html>

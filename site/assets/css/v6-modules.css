@@ -17,6 +17,6 @@ html,body{background:transparent;color:#e8f5ff;-webkit-text-size-adjust:100%;tex
 @keyframes signal-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--signal-distance,0px)))}}
 #rolling-cards-frame{z-index:1000;display:block;background:transparent;overflow:hidden;pointer-events:auto;opacity:0;transition:opacity .12s ease-out}
 #rolling-cards-frame.is-ready{opacity:1}
-html.vegas-page-hidden #logo-frame,html.vegas-page-hidden #rolling-cards-frame{visibility:hidden;opacity:0}
-html.vegas-page-hidden #signal-ticker{visibility:hidden}
+html.page-hidden #logo-frame,html.page-hidden #timeframe-frame,html.page-hidden #rolling-cards-frame{visibility:hidden;opacity:0}
+html.page-hidden #signal-ticker{visibility:hidden}
 @media(max-width:700px){#signal-track .signal-cycle{gap:clamp(12px,3vw,20px)}#signal-track .signal-group{gap:clamp(4px,1.2vw,7px)}}
