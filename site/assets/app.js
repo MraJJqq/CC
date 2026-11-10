@@ -26,6 +26,7 @@ function sendLogo(item,market){
  sendFrame(logoFrame,{type:"VEGAS_LOGO_SET_SYMBOL",symbol:String(item.symbol||code),name:String(item.name||market?.name||code),code,timeframe:"1D"});
 }
 function syncFrames(){sendTimeframe();const item=signalStocks[carouselIndex];if(item)sendLogo(item,universe.find(s=>s.symbol===item.symbol))}
+function revealFrame(frame){if(frame?.contentWindow?.document?.readyState==="complete")frame.classList.add("is-ready")}
 function clearSelectedStock(){sendLogo(null);chart.setCandles([]);chart.setVegasEmaCandles([])}
 function stopCarousel(){if(carouselTimer!==null)clearTimeout(carouselTimer);if(transitionTimer!==null)clearTimeout(transitionTimer);carouselTimer=transitionTimer=null;transitionToken++;$("app").classList.remove("is-symbol-transitioning")}
 function waitTransition(ms,token){return new Promise(resolve=>{transitionTimer=setTimeout(()=>{transitionTimer=null;resolve(token===transitionToken)},ms)})}
@@ -52,7 +53,7 @@ async function refreshSignals(){
   const next=today.filter(x=>x.confirmation_date===summary.market_date&&universe.some(s=>s.symbol===x.symbol));
   ticker.render(next,"ready");const payload=JSON.stringify(next);
   if(payload!==lastSignalPayload){lastSignalPayload=payload;signalStocks=createNonRepeatingQueue(next);
-   if(typeof window.setCardOrder==="function"&&!window.setCardOrder(signalStocks.map(x=>x.symbol)))console.error("[CC] card order rejected");
+   if(typeof window.setCardOrder==="function"){if(!window.setCardOrder(signalStocks.map(x=>x.symbol)))console.error("[CC] card order rejected");else $("rolling-cards-frame").classList.add("is-ready")}
    if(signalStocks.length)startCarousel(0);else{stopCarousel();clearSelectedStock()}
   }return summary;
  }catch(error){ticker.render([],"unavailable");throw error}
@@ -69,8 +70,8 @@ function resumeRuntime(){if(destroyed||isHidden())return;document.documentElemen
 function teardown(){if(destroyed)return;destroyed=true;stopCarousel();stopForegroundTimers();interactionLocks.clear();pageLifecycle?.destroy();controller.destroy();chart.destroy();ticker.destroy();lifecycle.destroy()}
 pageLifecycle=createPageLifecycle({documentRef:document,windowRef:window,onSuspend:suspendRuntime,onResume:resumeRuntime,onPageHideFinal:teardown});
 document.documentElement.classList.toggle("page-hidden",isHidden());
-lifecycle.listen(logoFrame,"load",syncFrames);lifecycle.listen(timeframeFrame,"load",syncFrames);
-lifecycle.listen(window,"vegas-cards-ready",()=>{if(typeof window.setCardOrder==="function")window.setCardOrder(signalStocks.map(x=>x.symbol))});
+lifecycle.listen(logoFrame,"load",()=>{logoFrame.classList.add("is-ready");syncFrames()});lifecycle.listen(timeframeFrame,"load",()=>{timeframeFrame.classList.add("is-ready");syncFrames()});revealFrame(logoFrame);revealFrame(timeframeFrame);
+lifecycle.listen(window,"vegas-cards-ready",()=>{if(typeof window.setCardOrder==="function"&&window.setCardOrder(signalStocks.map(x=>x.symbol)))$("rolling-cards-frame").classList.add("is-ready")});
 lifecycle.listen(window,"message",event=>{
  if(event.origin!==location.origin)return;
  if(event.source===timeframeFrame?.contentWindow&&event.data?.type==="VEGAS_TIMEFRAME_SELECT"){sendTimeframe();return}
