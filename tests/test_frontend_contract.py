@@ -31,5 +31,5 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertFalse((ROOT/"site/assets/full-screen.css").exists())
   self.assertNotIn("full-screen.css",self.index)
   self.assertIn("html.page-hidden",self.media)
- def test_no_second_pages_publisher(self):self.assertFalse((ROOT/".github/workflows/pages-deploy.yml").exists())
+ def test_no_second_pages_publisher(self):self.assertFalse((ROOT/".github/workflows/pages.yml").exists())
 if __name__=="__main__":unittest.main()

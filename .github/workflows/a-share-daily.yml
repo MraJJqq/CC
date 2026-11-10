@@ -4,8 +4,13 @@ on:
   # A workflow-definition update can be used for a one-time controlled import.
   # Ordinary application/source commits do not start a Tencent scan.
   push:
+    branches: [main]
     paths:
       - ".github/workflows/a-share-daily.yml"
+      - "site/**"
+      - "scripts/**"
+      - "config/**"
+      - "requirements.txt"
   workflow_dispatch:
     inputs:
       send_bark:
