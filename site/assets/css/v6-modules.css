@@ -11,9 +11,9 @@ html,body{background:transparent;color:#e8f5ff;-webkit-text-size-adjust:100%;tex
 #signal-track{height:100%;display:flex;width:max-content;align-items:center;white-space:nowrap;will-change:transform;animation:signal-marquee var(--signal-duration,28s) linear infinite}
 #signal-track .signal-cycle{display:flex;flex:0 0 auto;align-items:center;gap:clamp(14px,3vw,38px);height:100%;white-space:nowrap}
 #signal-track .signal-group{display:flex;flex:0 0 auto;align-items:center;gap:clamp(4px,1.2vw,10px)}
-#signal-track .signal-heading{font:700 clamp(8px,1.1vw,10px)/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;letter-spacing:.04em;color:rgba(112,220,255,.9);text-shadow:0 0 8px rgba(49,217,255,.3)}
+#signal-track .signal-heading{font:700 clamp(9px,2.2vw,11px)/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;letter-spacing:.04em;color:rgba(112,220,255,.9);text-shadow:0 0 8px rgba(49,217,255,.3)}
 #signal-track .signal-content{display:flex;align-items:center;gap:12px}
-#signal-track .signal-row,#signal-track .signal-empty{font:600 clamp(8px,1.1vw,10px)/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.04em;color:rgba(169,234,255,.72)}
+#signal-track .signal-row,#signal-track .signal-empty{font:600 clamp(9px,2.2vw,11px)/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.04em;color:rgba(169,234,255,.72)}
 @keyframes signal-marquee{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--signal-distance,0px)))}}
 #rolling-cards-frame{z-index:1000;display:block;background:transparent;overflow:hidden;pointer-events:auto;opacity:0;transition:opacity .12s ease-out}
 #rolling-cards-frame.is-ready{opacity:1}
