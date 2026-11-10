@@ -51,7 +51,7 @@ jobs:
             exit 1
           fi
       - name: Upload current Pages site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - name: Deploy CC frontend
