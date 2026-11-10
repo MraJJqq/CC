@@ -7,6 +7,7 @@ on:
       - "site/**"
   workflow_dispatch:
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -23,6 +24,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Restore the latest valid A-share data snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          restored=0
+          while IFS=        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy CC frontend
+        id: deployment
+        uses: actions/deploy-pages@v4
+\\t' read -r run_id run_number; do
+            [ -n "$run_id" ] || continue
+            rm -rf .cc-data-artifact site/data
+            if ! gh run download "$run_id" --name "cc-a-share-$run_number" --dir .cc-data-artifact; then
+              continue
+            fi
+            if [ ! -d .cc-data-artifact/site/data ]; then
+              continue
+            fi
+            mkdir -p site
+            cp -a .cc-data-artifact/site/data site/data
+            if python3 scripts/validate_pages_payload.py; then
+              restored=1
+              break
+            fi
+          done < <(gh run list --workflow a-share-daily.yml --status success --limit 30 --json databaseId,number --jq '.[] | [.databaseId,.number] | @tsv')
+          if [ "$restored" -ne 1 ]; then
+            echo "No valid A-share Pages data snapshot found; refusing to publish an incomplete site."
+            exit 1
+          fi
       - name: Upload current Pages site
         uses: actions/upload-pages-artifact@v3
         with:
