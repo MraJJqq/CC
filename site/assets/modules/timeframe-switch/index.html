@@ -1,14 +1,27 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>A股周期</title><link rel="stylesheet" href="../../css/full-screen-dynamic.css"><style>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>A股周期</title>
+<link rel="stylesheet" href="./responsive.css?v=cc-viewport-20261110-1">
+<style>
 @font-face{font-family:"Chakra Petch";src:url("../../fonts/ChakraPetch-Bold.ttf") format("truetype");font-weight:700;font-display:swap}
-:root{color-scheme:dark;--ink:#e8f0ff;--up:#2ee6a6}*{box-sizing:border-box}
+:root{color-scheme:dark;--ink:#e8f0ff;--up:#2ee6a6}
+*{box-sizing:border-box}
 html,body{width:100%;height:100%;margin:0;overflow:hidden;background:transparent;font-family:"Chakra Petch",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
 .tf{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.tf button{width:100%;height:100%;border:0;background:none;padding:0;color:var(--ink);font:700 clamp(22px,3vh,30px)/1 "Chakra Petch",sans-serif;filter:drop-shadow(0 0 10px rgba(46,230,166,.45));-webkit-tap-highlight-color:transparent}
+.tf button{width:100%;height:100%;min-height:0;border:0;background:none;padding:0;color:var(--ink);font:700 clamp(22px,3vh,30px)/1 "Chakra Petch",sans-serif;filter:drop-shadow(0 0 10px rgba(46,230,166,.45));-webkit-tap-highlight-color:transparent}
 .tf button:focus-visible{outline:2px solid var(--up);outline-offset:2px;border-radius:8px}
-</style></head><body><div class="tf" role="group" aria-label="A股周期"><button aria-pressed="true">1D</button></div>
+</style>
+</head>
+<body>
+<div class="tf" role="group" aria-label="A股周期"><button aria-pressed="true">1D</button></div>
 <script>
 const button=document.querySelector(".tf button");
 window.addEventListener("message",event=>{if(event.origin!==location.origin||event.source!==window.parent)return;const d=event.data;if(d?.type==="VEGAS_TIMEFRAME_SET"&&d.timeframe==="1D")button.setAttribute("aria-pressed","true")});
 button.addEventListener("click",()=>window.parent.postMessage({type:"VEGAS_TIMEFRAME_SELECT",timeframe:"1D"},location.origin));
 window.addEventListener("pageshow",()=>window.parent.postMessage({type:"VEGAS_TIMEFRAME_READY",timeframe:"1D"},location.origin));
-</script></body></html>
+</script>
+</body>
+</html>

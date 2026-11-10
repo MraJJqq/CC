@@ -5,7 +5,7 @@ class CCFrontendContractTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   cls.index=(ROOT/"site/index.html").read_text(encoding="utf-8");cls.app=(ROOT/"site/assets/app.js").read_text(encoding="utf-8")
-  cls.media=(ROOT/"site/assets/css/full-screen-dynamic.css").read_text(encoding="utf-8")
+  cls.media=(ROOT/"site/assets/css/full-screen-dynamic.css").read_text(encoding="utf-8");cls.module_css=(ROOT/"site/assets/css/v6-modules.css").read_text(encoding="utf-8");cls.tf_responsive=(ROOT/"site/assets/modules/timeframe-switch/responsive.css").read_text(encoding="utf-8")
   cls.logo=(ROOT/"site/assets/modules/logo/logo.js").read_text(encoding="utf-8");cls.tf=(ROOT/"site/assets/modules/timeframe-switch/index.html").read_text(encoding="utf-8")
   cls.ticker=(ROOT/"site/assets/modules/signal-ticker/ticker.js").read_text(encoding="utf-8");cls.kline=(ROOT/"site/assets/kline/tencent-kline-controller.js").read_text(encoding="utf-8")
   cls.scanner=(ROOT/"scripts/a_share_cache.py").read_text(encoding="utf-8")
@@ -30,6 +30,13 @@ class CCFrontendContractTests(unittest.TestCase):
  def test_single_fullscreen_geometry_authority(self):
   self.assertFalse((ROOT/"site/assets/full-screen.css").exists())
   self.assertNotIn("full-screen.css",self.index)
-  self.assertIn("html.page-hidden",self.media)
+  self.assertIn("html.page-hidden",self.module_css)
+ def test_fullscreen_rules_are_centralized(self):
+  self.assertNotIn("full-screen-dynamic.css",self.tf)
+  self.assertIn("responsive.css",self.tf)
+  self.assertIn("100dvh",self.media)
+  self.assertIn("safe-area-inset-bottom",self.media)
+  self.assertIn("height:100%",self.tf_responsive)
+  self.assertIn("?v=cc-viewport-20261110-1",self.index)
  def test_no_second_pages_publisher(self):self.assertFalse((ROOT/".github/workflows/pages.yml").exists())
 if __name__=="__main__":unittest.main()
