@@ -1,7 +1,18 @@
 name: CC A-share Daily Cache and Publish
 # Scheduled/manual A-share scans publish generated data. Source commits do not start scans.
 on:
+  # A workflow-definition update can be used for a one-time controlled import.
+  # Ordinary application/source commits do not start a Tencent scan.
+  push:
+    paths:
+      - ".github/workflows/a-share-daily.yml"
   workflow_dispatch:
+    inputs:
+      send_bark:
+        description: "Send Bark after a successful import"
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "0 4 * * 1-5"
 concurrency:
@@ -44,7 +55,7 @@ jobs:
         if: steps.calendar.outputs.is-trading-day == 'true'
         run: python scripts/a_share_cache.py --workers 4 --cache-dir .cache/cn500-tencent-qfq
       - name: Push CN500 daily signals to Bark
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
         env:
           BARK_KEY: ${{ secrets.BARK_KEY }}
           BARK_SERVER: ${{ secrets.BARK_SERVER }}
