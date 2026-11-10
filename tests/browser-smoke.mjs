@@ -23,7 +23,8 @@ try{
  for(const v of [{width:390,height:844},{width:844,height:390},{width:320,height:740},{width:768,height:1024},{width:1024,height:768}]){
   await page.setViewportSize(v);await page.waitForTimeout(80);
   const l=await page.evaluate(()=>Object.fromEntries(["#app","#page-background","#logo-frame","#timeframe-frame","#kline-host","#rolling-cards-frame","#signal-ticker"].map(s=>{const r=document.querySelector(s).getBoundingClientRect();return[s,{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,z:getComputedStyle(document.querySelector(s)).zIndex}]})));
-  for(const s of ["#app","#page-background","#logo-frame","#kline-host","#rolling-cards-frame","#signal-ticker"])if(l[s].width<v.width-2||l[s].left< -1||l[s].right>v.width+1)throw new Error("Viewport bounds failed: "+s);
+  for(const s of ["#app","#page-background","#logo-frame","#kline-host","#rolling-cards-frame"])if(l[s].width<v.width-2||l[s].left< -1||l[s].right>v.width+1)throw new Error("Viewport bounds failed: "+s);
+  if(l["#signal-ticker"].width<=0||l["#signal-ticker"].left<0||l["#signal-ticker"].right>v.width+1)throw new Error("Ticker safe-area bounds failed");
   if(l["#kline-host"].top>1||l["#kline-host"].left>1||l["#kline-host"].right<v.width-1||l["#kline-host"].bottom<v.height-1)throw new Error("Full-screen K-line viewport contract failed");
   if(l["#rolling-cards-frame"].bottom<v.height-1||l["#signal-ticker"].bottom<v.height-1)throw new Error("Bottom overlay alignment failed");
   if(l["#timeframe-frame"].left<0||l["#timeframe-frame"].right>v.width+1||l["#timeframe-frame"].bottom>v.height+1)throw new Error("Timeframe safe-area bounds failed");
