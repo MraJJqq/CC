@@ -25,7 +25,7 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertIn(">1D<",self.tf);self.assertIn('timeframe:"1D"',self.app)
   self.assertIn("VEGAS_LOGO_SET_SYMBOL",self.logo);self.assertIn("VEGAS_LOGO_SET_SYMBOL",self.app)
  def test_cards_and_signal_flow(self):
-  self.assertIn("confirmation_date===summary.market_date",self.app);self.assertIn("VEGAS_CARD_SELECT",self.app);self.assertIn("No change",self.ticker)
+  self.assertIn("confirmation_date!==summary.market_date",self.app);self.assertIn("VEGAS_CARD_SELECT",self.app);self.assertIn("No change",self.ticker)
  def test_daily_signal_snapshot_is_shared_and_persistent(self):
   for marker in ('SIGNAL_SNAPSHOT_KEY="cc-daily-signal-snapshot-v1"',"readSignalSnapshot()","persistSignalSnapshot(snapshot)","summary.market_date<=activeSignalDate","applySignalSnapshot(snapshot)","confirmation_date!==summary.market_date"):
    self.assertIn(marker,self.app)
