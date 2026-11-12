@@ -5,7 +5,7 @@ import {createPageLifecycle} from "./shared/page-lifecycle-v6.js?v=cc-clean-2026
 import {createSignalTicker} from "./modules/signal-ticker/ticker.js?v=cc-clean-20261110-2";
 const DATA="./data/",$=id=>document.getElementById(id),lifecycle=createLifecycleScope();
 window.__CC_READY__=false;
-let pageLifecycle=null,universe=[],signalStocks=[],carouselIndex=0,carouselTimer=null,transitionTimer=null,transitionToken=0,destroyed=false,lastSignalPayload="",activeSignalDate="",signalRefreshToken=0,signalRefreshController=null;
+let pageLifecycle=null,universe=[],signalStocks=[],carouselIndex=0,carouselTimer=null,transitionTimer=null,transitionToken=0,destroyed=false,activeSignalDate="",signalRefreshToken=0,signalRefreshController=null;
 const interactionLocks=new Set();let signalTimer=null,klineTimer=null,cardsTimer=null;
 const ROTATION_START_KEY="cc-last-random-start",SIGNAL_SNAPSHOT_KEY="cc-daily-signal-snapshot-v1",logoFrame=$("logo-frame"),timeframeFrame=$("timeframe-frame");
 const isHidden=()=>pageLifecycle?pageLifecycle.isSuspended():document.hidden;
@@ -30,7 +30,7 @@ function readSignalSnapshot(){
 }
 function applySignalSnapshot(snapshot){
  activeSignalDate=snapshot.market_date;universe=snapshot.universe;
- const next=snapshot.signals;lastSignalPayload=JSON.stringify(next);
+ const next=snapshot.signals;
  signalStocks=createNonRepeatingQueue(next);ticker.render(next,"ready");
  if(typeof window.setCardOrder==="function"){
   if(!window.setCardOrder(signalStocks.map(x=>x.symbol)))console.error("[CC] card order rejected");
@@ -100,7 +100,7 @@ async function refreshSignals(){
  }catch(error){if(error?.name==="AbortError"||destroyed||token!==signalRefreshToken)return null;if(!activeSignalDate)ticker.render([],"unavailable");throw error}
  finally{if(signalRefreshController===request)signalRefreshController=null}
 }
-async function boot(){const saved=readSignalSnapshot();if(saved)applySignalSnapshot(saved);else ticker.render([],"waiting");syncFrames();try{await refreshSignals()}catch(error){console.warn("[CC] signal initialization failed",error);ticker.render([],"unavailable")}if(typeof window.updateQuotes==="function")await refreshCards();window.__CC_READY__=true}
+async function boot(){const saved=readSignalSnapshot();if(saved)applySignalSnapshot(saved);else ticker.render([],"waiting");syncFrames();try{await refreshSignals()}catch(error){console.warn("[CC] signal initialization failed",error);if(!activeSignalDate)ticker.render([],"unavailable")}if(typeof window.updateQuotes==="function")await refreshCards();window.__CC_READY__=true}
 function stopForegroundTimers(){signalTimer?.();klineTimer?.();cardsTimer?.();signalTimer=klineTimer=cardsTimer=null}
 function startForegroundTimers(){
  if(destroyed||isHidden())return;
@@ -124,4 +124,4 @@ lifecycle.listen(window,"message",event=>{
  if(event.data?.type==="VEGAS_CARD_SELECT"){const symbol=String(event.data.symbol||""),index=signalStocks.findIndex(x=>x.symbol===symbol);if(index>=0)void transitionToIndex(index)}
 });
 lifecycle.listen(window,"beforeunload",teardown,{once:true});startForegroundTimers();
-boot().catch(error=>{clearSelectedStock();ticker.render([],"unavailable");console.error("[CC] initialization failed",error)});
+boot().catch(error=>{if(!activeSignalDate){clearSelectedStock();ticker.render([],"unavailable")}console.error("[CC] initialization failed",error)});
