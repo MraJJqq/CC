@@ -73,7 +73,7 @@ class CCFrontendContractTests(unittest.TestCase):
   for content in (self.index,logo_html):
    self.assertNotIn("cc-viewport-20261110-1",content)
    self.assertIn("cc-batch-20261112-1",content)
-  self.assertIn("?v=cc-batch-20261112-1",self.app)
+  self.assertIn("?v=cc-viewport-complete-20261112-2",self.app)
   self.assertIn("?v=cc-batch-20261112-1",view)
  def test_cards_share_one_initial_snapshot_request(self):
   cards=(ROOT/"site/assets/rolling-cards.js").read_text(encoding="utf-8")
