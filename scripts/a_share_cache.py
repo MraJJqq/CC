@@ -1,7 +1,7 @@
 from __future__ import annotations
 import argparse,base64,gzip,multiprocessing,os,re,time,json
 from concurrent.futures import ProcessPoolExecutor,as_completed
-from datetime import date,datetime,timedelta,timezone
+from datetime import date,datetime,timedelta,timezone,time as dt_time
 from pathlib import Path
 try:
  from .trading_calendar import china_today,is_a_share_trading_day,previous_a_share_trading_day
@@ -77,6 +77,11 @@ def merge_frames(old,new):
  frames=[normalize(x) for x in (old,new) if x is not None and not x.empty]
  if not frames:return normalize(None)
  return pd.concat(frames,ignore_index=True).drop_duplicates("date",keep="last").sort_values("date").reset_index(drop=True)
+def latest_completed_session(run_date,local_now):
+ """Return today's session only after the 15:30 China close; otherwise use the prior session."""
+ if is_a_share_trading_day(run_date) and local_now.time().replace(tzinfo=None)>=dt_time(15,30):
+  return run_date
+ return previous_a_share_trading_day(run_date)
 def through_date(df,end):
  x=normalize(df)
  return x.loc[x.date<=pd.Timestamp(end)].reset_index(drop=True)
@@ -171,7 +176,8 @@ def main():
  if not is_a_share_trading_day(run_date):
   print(f"{run_date.isoformat()} is not an A-share trading day; Tencent scan skipped.",flush=True)
   return
- end_date=previous_a_share_trading_day(run_date).isoformat()
+ local_now=datetime.now().astimezone(ZoneInfo("Asia/Shanghai"))
+ end_date=latest_completed_session(run_date,local_now).isoformat()
  print(f"Using last completed A-share session: {end_date}; excluding the in-progress current-day candle.",flush=True)
  symbols=load_universe(a.universe_file);Path(a.cache_dir).mkdir(parents=True,exist_ok=True);names=read_names(symbols);items=[{"symbol":s,"name":names[s]} for s in symbols]
  n=min(a.workers,len(items));size=(len(items)+n-1)//n;chunks=[items[i:i+size] for i in range(0,len(items),size)];Path(a.cache_dir).mkdir(parents=True,exist_ok=True)

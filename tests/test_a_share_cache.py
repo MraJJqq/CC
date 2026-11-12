@@ -4,14 +4,24 @@ import json
 import gzip
 import tempfile
 from pathlib import Path
-from datetime import date
+from datetime import date,datetime
+from zoneinfo import ZoneInfo
 from unittest.mock import patch
 from scripts.trading_calendar import is_a_share_trading_day,previous_a_share_trading_day,upcoming_trading_days
-from scripts.a_share_cache import require_complete_fetch,fetch_cached,cache_paths,atomic_json,SOURCE,SCHEMA
+from scripts.a_share_cache import require_complete_fetch,fetch_cached,cache_paths,atomic_json,SOURCE,SCHEMA,latest_completed_session
 from scripts.a_share_cache import to_tencent_symbol,parse_tencent_quote_text,merge_frames,through_date,valid_bars,excluded_name,ema,normalize
 from scripts.validate_pages_payload import validate_payload
 
 class TradingCalendarTests(unittest.TestCase):
+ def test_after_close_uses_current_completed_session(self):
+  now=datetime(2026,11,12,16,30,tzinfo=ZoneInfo("Asia/Shanghai"))
+  self.assertEqual(latest_completed_session(date(2026,11,12),now),date(2026,11,12))
+ def test_before_close_uses_previous_completed_session(self):
+  now=datetime(2026,11,12,14,59,tzinfo=ZoneInfo("Asia/Shanghai"))
+  self.assertEqual(latest_completed_session(date(2026,11,12),now),date(2026,11,11))
+ def test_non_trading_day_uses_previous_session_even_after_close(self):
+  now=datetime(2026,11,14,16,30,tzinfo=ZoneInfo("Asia/Shanghai"))
+  self.assertEqual(latest_completed_session(date(2026,11,14),now),date(2026,11,13))
  def test_weekend_is_not_a_trading_day(self):
   self.assertFalse(is_a_share_trading_day(date(2026, 11, 7)))
  def test_public_holiday_is_not_a_trading_day(self):
@@ -120,6 +130,10 @@ class WorkflowReliabilityTests(unittest.TestCase):
   publish=(root/".github/workflows/pages-publish.yml").read_text(encoding="utf-8")
   self.assertNotIn('      - "site/**"',scan)
   self.assertIn('      - "site/**"',publish)
+  self.assertIn('cron: "30 8 * * 1-5"',scan)
+  self.assertIn("Check Bark credentials",scan)
+  self.assertIn("steps.bark.outputs.configured == 'true'",scan)
+  self.assertIn("continue-on-error: true",scan)
   self.assertIn("cancel-in-progress: false",scan)
   self.assertIn("cancel-in-progress: false",publish)
  def test_bark_only_runs_after_payload_validation(self):

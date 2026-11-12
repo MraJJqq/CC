@@ -15,7 +15,8 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: "0 4 * * 1-5"
+    # 16:30 China Standard Time, after the A-share cash market closes.
+    - cron: "30 8 * * 1-5"
 concurrency:
   group: cc-a-share-daily
   cancel-in-progress: false
@@ -58,8 +59,22 @@ jobs:
       - name: Validate complete Pages data payload
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true'
         run: python scripts/validate_pages_payload.py
-      - name: Push CN500 daily signals to Bark
+      - name: Check Bark credentials
+        id: bark
         if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
+        env:
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+        run: |
+          if [ -n "$BARK_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Bark credentials are configured."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Bark push is disabled: add the repository Actions secret BARK_KEY in Settings > Secrets and variables > Actions."
+          fi
+      - name: Push CN500 daily signals to Bark
+        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && steps.bark.outputs.configured == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
+        continue-on-error: true
         env:
           BARK_KEY: ${{ secrets.BARK_KEY }}
           BARK_SERVER: ${{ secrets.BARK_SERVER }}
