@@ -22,7 +22,7 @@ function readSignalSnapshot(){
  try{
   const raw=localStorage.getItem(SIGNAL_SNAPSHOT_KEY);if(!raw)return null;
   const value=JSON.parse(raw);
-  if(!value||typeof value.market_date!=="string"||!/^\\d{4}-\\d{2}-\\d{2}$/.test(value.market_date)||!Array.isArray(value.universe)||!Array.isArray(value.signals))return null;
+  if(!value||typeof value.market_date!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value.market_date)||!Array.isArray(value.universe)||!Array.isArray(value.signals))return null;
   const symbols=new Set(value.universe.map(x=>x?.symbol).filter(Boolean));
   if(value.signals.some(x=>!x||x.confirmation_date!==value.market_date||!symbols.has(x.symbol)))return null;
   return {market_date:value.market_date,universe:value.universe,signals:value.signals};
@@ -90,7 +90,7 @@ async function refreshSignals(){
  try{
   const [summary,stocks,today]=await Promise.all(["summary.json","universe.json","signals.json"].map(n=>fetch(DATA+n,{cache:"no-store",signal:request.signal}).then(r=>{if(!r.ok)throw new Error("data "+n+" unavailable");return r.json()})));
   if(destroyed||token!==signalRefreshToken)return null;
-  if(!summary?.market_date||!/^\\d{4}-\\d{2}-\\d{2}$/.test(summary.market_date)||!Array.isArray(stocks)||!Array.isArray(today))throw new Error("CC market snapshot incomplete");
+  if(!summary?.market_date||!/^\d{4}-\d{2}-\d{2}$/.test(summary.market_date)||!Array.isArray(stocks)||!Array.isArray(today))throw new Error("CC market snapshot incomplete");
   const eligible=new Set(stocks.map(x=>x?.symbol).filter(Boolean));
   if(today.some(x=>!x||x.confirmation_date!==summary.market_date||!eligible.has(x.symbol)))throw new Error("CC daily signal snapshot failed validation");
   if(activeSignalDate&&summary.market_date<=activeSignalDate)return summary;

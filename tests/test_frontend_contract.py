@@ -30,6 +30,7 @@ class CCFrontendContractTests(unittest.TestCase):
   for marker in ('SIGNAL_SNAPSHOT_KEY="cc-daily-signal-snapshot-v1"',"readSignalSnapshot()","persistSignalSnapshot(snapshot)","summary.market_date<=activeSignalDate","applySignalSnapshot(snapshot)","confirmation_date!==summary.market_date"):
    self.assertIn(marker,self.app)
   self.assertIn('cc-daily-snapshot-20261112-1',self.index)
+  self.assertIn(r"/^\d{4}-\d{2}-\d{2}$/",self.app)
   self.assertIn('if(!activeSignalDate)ticker.render([],"unavailable")',self.app)
  def test_fullscreen_panel_geometry(self):
   for x in ("#kline-host","#rolling-cards-frame","#signal-ticker","safe-area-inset-bottom"):self.assertIn(x,self.media)
