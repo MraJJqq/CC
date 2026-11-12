@@ -27,6 +27,16 @@ class CCFrontendContractTests(unittest.TestCase):
   for marker in ("max-height:45vh!important","height:clamp(20px,3vh,26px)!important","height:clamp(18px,5vh,23px)!important","calc(100vh - var(--v6-safe-bottom)"):
    self.assertIn(marker,self.media)
 
+ def test_viewport_fallback_supports_syntax_and_migration_order(self):
+  for source in (self.media,self.tf_responsive):
+   self.assertIn("@supports not (height: 100dvh)",source)
+   self.assertNotIn("@supports not(height:100dvh)",source)
+  controller=self.kline
+  select=controller[controller.index("async function select("):]
+  self.assertLess(select.index("migrateLegacyViewportKey?.(nextSymbol)"),select.index("await read(key)"))
+  self.assertLess(select.index("await read(key)"),select.index('render(candles,token,historyComplete,"cache-loaded")'))
+  view=(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8")
+  self.assertIn("overlay.setView(viewport())",view)
  def test_tencent_qfq_daily_is_configured(self):
   self.assertIn("stock_zh_a_hist_tx",self.scanner);self.assertIn("Tencent qt.gtimg.cn",self.scanner)
   self.assertIn('TIMEFRAME="1D"',self.kline);self.assertIn('DB_NAME="cc-market-cache"',self.kline)
