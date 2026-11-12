@@ -2,4 +2,4 @@
 html body .tf{width:100%;height:100%;gap:0}
 html body .tf button{width:100%;height:100%;min-height:0;padding:0 clamp(3px,1vw,8px);font-size:clamp(14px,2.4dvh,21px)!important}
 @media(orientation:landscape){html body .tf button{font-size:clamp(13px,4.5dvh,18px)!important}}
-@supports not(height:100dvh){html body .tf button{font-size:clamp(14px,2.4vh,21px)!important}@media(orientation:landscape){html body .tf button{font-size:clamp(13px,4.5vh,18px)!important}}}
+@supports not (height: 100dvh){html body .tf button{font-size:clamp(14px,2.4vh,21px)!important}@media(orientation:landscape){html body .tf button{font-size:clamp(13px,4.5vh,18px)!important}}}
