@@ -1,4 +1,4 @@
-import {createV6KlineView} from "./kline/v6-kline-view.js?v=cc-clean-20261110-2";
+import {createV6KlineView} from "./kline/v6-kline-view.js?v=cc-kline-color-20261112-1";
 import {createTencentKlineController} from "./kline/tencent-kline-controller.js?v=cc-clean-20261110-2";
 import {createLifecycleScope} from "./shared/lifecycle.js?v=cc-clean-20261110-2";
 import {createPageLifecycle} from "./shared/page-lifecycle-v6.js?v=cc-clean-20261110-2";
