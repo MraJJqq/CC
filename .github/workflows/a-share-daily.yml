@@ -87,7 +87,7 @@ jobs:
           key: cc-cn500-tencent-qfq-v4-${{ github.run_id }}
       - name: Upload diagnostics and cache manifest
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cc-a-share-${{ github.run_number }}
           path: |
