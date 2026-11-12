@@ -3,6 +3,7 @@ import argparse,base64,gzip,multiprocessing,os,re,time,json
 from concurrent.futures import ProcessPoolExecutor,as_completed
 from datetime import date,datetime,timedelta,timezone,time as dt_time
 from pathlib import Path
+from zoneinfo import ZoneInfo
 try:
  from .trading_calendar import china_today,is_a_share_trading_day,previous_a_share_trading_day
 except ImportError:
