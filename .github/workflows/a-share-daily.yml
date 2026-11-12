@@ -46,7 +46,7 @@ jobs:
         id: calendar
         run: python scripts/trading_calendar.py --write site/data/trading-calendar.json --github-output "$GITHUB_OUTPUT"
       - name: Restore Tencent CN500 cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .cache/cn500-tencent-qfq
           key: cc-cn500-tencent-qfq-v4-${{ github.run_id }}
@@ -81,7 +81,7 @@ jobs:
         run: python scripts/push_signals.py
       - name: Save Tencent cache snapshot
         if: always() && steps.scan.outcome != 'cancelled'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .cache/cn500-tencent-qfq
           key: cc-cn500-tencent-qfq-v4-${{ github.run_id }}
