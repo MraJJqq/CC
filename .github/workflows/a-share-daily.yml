@@ -8,12 +8,6 @@ on:
       - "config/**"
       - "requirements.txt"
   workflow_dispatch:
-    inputs:
-      send_bark:
-        description: "Send Bark after a successful import"
-        required: false
-        type: boolean
-        default: false
   schedule:
     # 16:30 China Standard Time, after the A-share cash market closes.
     - cron: "30 8 * * 1-5"
@@ -61,7 +55,7 @@ jobs:
         run: python scripts/validate_pages_payload.py
       - name: Check Bark credentials
         id: bark
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
+        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         env:
           BARK_KEY: ${{ secrets.BARK_KEY }}
         run: |
@@ -73,7 +67,7 @@ jobs:
             echo "::warning::Bark push is disabled: add the repository Actions secret BARK_KEY in Settings > Secrets and variables > Actions."
           fi
       - name: Push CN500 daily signals to Bark
-        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && steps.bark.outputs.configured == 'true' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.send_bark == true))
+        if: steps.scan.outcome == 'success' && steps.calendar.outputs.is-trading-day == 'true' && steps.bark.outputs.configured == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         continue-on-error: true
         env:
           BARK_KEY: ${{ secrets.BARK_KEY }}
