@@ -43,7 +43,7 @@ try{
   const key="cc-kline-viewport-v1",canvas=document.querySelector("#kline-host>canvas:not([aria-hidden=true])");
   if(!canvas)throw new Error("K-line interaction canvas missing");
   const supports=(doc)=>{
-   const visit=rules=>{for(const rule of rules){if(rule.type===12&&/not\\s*\\(\\s*height\\s*:\\s*100dvh\\s*\\)/i.test(rule.conditionText||""))return true;if(rule.cssRules&&visit(rule.cssRules))return true;}return false};
+   const visit=rules=>{for(const rule of rules){if(rule.type===12&&/not\s*\(\s*height\s*:\s*100dvh\s*\)/i.test(rule.conditionText||""))return true;if(rule.cssRules&&visit(rule.cssRules))return true;}return false};
    return [...doc.styleSheets].some(sheet=>{try{return visit(sheet.cssRules)}catch(_){return false}});
   };
   const mainFallback=supports(document),frameFallback=supports(document.querySelector("#timeframe-frame").contentDocument);
