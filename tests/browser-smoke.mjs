@@ -39,6 +39,31 @@ try{
   if(l["#rolling-cards-frame"].bottom<v.height-1||l["#signal-ticker"].bottom<v.height-1)throw new Error("Bottom overlay alignment failed");
   if(l["#timeframe-frame"].left<0||l["#timeframe-frame"].right>v.width+1||l["#timeframe-frame"].bottom>v.height+1)throw new Error("Timeframe safe-area bounds failed");
  }
+ const viewportInteraction=await page.evaluate(async()=>{
+  const key="cc-kline-viewport-v1",canvas=document.querySelector("#kline-host>canvas:not([aria-hidden=true])");
+  if(!canvas)throw new Error("K-line interaction canvas missing");
+  const supports=(doc)=>{
+   const visit=rules=>{for(const rule of rules){if(rule.type===12&&/not\\s*\\(\\s*height\\s*:\\s*100dvh\\s*\\)/i.test(rule.conditionText||""))return true;if(rule.cssRules&&visit(rule.cssRules))return true;}return false};
+   return [...doc.styleSheets].some(sheet=>{try{return visit(sheet.cssRules)}catch(_){return false}});
+  };
+  const mainFallback=supports(document),frameFallback=supports(document.querySelector("#timeframe-frame").contentDocument);
+  const read=()=>JSON.parse(localStorage.getItem(key)||"null");
+  const send=(type,id,x,y)=>canvas.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:"touch",clientX:x,clientY:y,button:0,buttons:type==="pointerup"||type==="pointercancel"?0:1}));
+  const rect=canvas.getBoundingClientRect(),cx=rect.left+rect.width*.55,cy=rect.top+rect.height*.5;
+  const before=read();
+  send("pointerdown",71,cx,cy);send("pointermove",71,cx-55,cy);send("pointerup",71,cx-55,cy);
+  await new Promise(resolve=>setTimeout(resolve,100));
+  const dragged=read();
+  const beforePinch=dragged?.barW;
+  send("pointerdown",72,cx-45,cy);send("pointerdown",73,cx+45,cy);
+  send("pointermove",73,cx+100,cy);send("pointerup",73,cx+100,cy);send("pointerup",72,cx-45,cy);
+  const pinched=read();
+  send("pointerdown",74,cx,cy);send("pointercancel",74,cx,cy);
+  return {mainFallback,frameFallback,dragChanged:Boolean(before&&dragged&&(before.anchorTime!==dragged.anchorTime||before.anchorOffset!==dragged.anchorOffset)),pinchChanged:Boolean(Number.isFinite(beforePinch)&&Number.isFinite(pinched?.barW)&&pinched.barW>beforePinch*1.1),before,dragged,pinched};
+ });
+ if(!viewportInteraction.mainFallback||!viewportInteraction.frameFallback)throw new Error("A 100dvh fallback @supports rule was not parsed in both page and timeframe iframe: "+JSON.stringify(viewportInteraction));
+ if(!viewportInteraction.dragChanged||!viewportInteraction.pinchChanged)throw new Error("K-line drag/pinch interaction contract failed: "+JSON.stringify(viewportInteraction));
+ console.log("CC viewport interaction and CSS fallback:",JSON.stringify(viewportInteraction));
  if(errors.length)throw new Error(errors.join(" | "));
  for(let pass=1;pass<=2;pass++){
   await page.reload({waitUntil:"domcontentloaded"});
