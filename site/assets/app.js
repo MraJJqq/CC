@@ -1,8 +1,8 @@
-import {createV6KlineView} from "./kline/v6-kline-view.js?v=cc-batch-20261112-1";
-import {createTencentKlineController} from "./kline/tencent-kline-controller.js?v=cc-batch-20261112-1";
-import {createLifecycleScope} from "./shared/lifecycle.js?v=cc-batch-20261112-1";
-import {createPageLifecycle} from "./shared/page-lifecycle-v6.js?v=cc-batch-20261112-1";
-import {createSignalTicker} from "./modules/signal-ticker/ticker.js?v=cc-batch-20261112-1";
+import {createV6KlineView} from "./kline/v6-kline-view.js?v=cc-viewport-complete-20261112-2";
+import {createTencentKlineController} from "./kline/tencent-kline-controller.js?v=cc-viewport-complete-20261112-2";
+import {createLifecycleScope} from "./shared/lifecycle.js?v=cc-viewport-complete-20261112-2";
+import {createPageLifecycle} from "./shared/page-lifecycle-v6.js?v=cc-viewport-complete-20261112-2";
+import {createSignalTicker} from "./modules/signal-ticker/ticker.js?v=cc-viewport-complete-20261112-2";
 const DATA="./data/",$=id=>document.getElementById(id),lifecycle=createLifecycleScope();
 window.__CC_READY__=false;
 let pageLifecycle=null,universe=[],signalStocks=[],carouselIndex=0,carouselTimer=null,transitionTimer=null,transitionToken=0,destroyed=false,activeSignalDate="",signalRefreshToken=0,signalRefreshController=null;

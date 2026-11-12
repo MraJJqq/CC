@@ -153,7 +153,7 @@ export function createTencentKlineController({frame,isHidden=()=>document.hidden
  async function select(nextSymbol,expectedLastDate=selectedExpectedDate){
   if(destroyed||!nextSymbol)return false;
   selectedExpectedDate=String(expectedLastDate||"");
-  selection++;const token=selection;symbol=nextSymbol;historyComplete=false;
+  selection++;const token=selection;symbol=nextSymbol;historyComplete=false;frame?.contentWindow?.migrateLegacyViewportKey?.(nextSymbol);
   if(activeRequest)activeRequest.abort();
   if(!canWork())return false;
   const key=keyOf(nextSymbol),request=new AbortController();activeRequest=request;inflight.add(request);

@@ -18,6 +18,15 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertIn("100dvh",self.media);self.assertIn("safe-area-inset-bottom",self.media)
   self.assertIn("pointerdown",(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8"))
   self.assertIn("cc-kline-viewport",(ROOT/"site/assets/kline/v6-viewport-state.js").read_text(encoding="utf-8"))
+ def test_legacy_viewport_migration_is_connected(self):
+  self.assertIn("migrateLegacyViewportKey?.(nextSymbol)",self.kline)
+  view=(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8")
+  self.assertIn("localStorage.removeItem(legacyKey)",view)
+  self.assertIn("if(!legacy)return",view)
+ def test_legacy_viewport_unit_fallback_is_complete(self):
+  for marker in ("max-height:45vh!important","height:clamp(20px,3vh,26px)!important","height:clamp(18px,5vh,23px)!important","calc(100vh - var(--v6-safe-bottom)"):
+   self.assertIn(marker,self.media)
+
  def test_tencent_qfq_daily_is_configured(self):
   self.assertIn("stock_zh_a_hist_tx",self.scanner);self.assertIn("Tencent qt.gtimg.cn",self.scanner)
   self.assertIn('TIMEFRAME="1D"',self.kline);self.assertIn('DB_NAME="cc-market-cache"',self.kline)

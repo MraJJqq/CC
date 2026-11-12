@@ -14,7 +14,7 @@ function setRight(v){
  right=clamp(v,0,maxRight);
 }
 function saveViewport(){const next=captureViewportState(C,right,barW);if(!next)return;viewportState=next;try{localStorage.setItem(VIEWPORT_STORAGE_KEY,JSON.stringify(next))}catch(_){}}
-function migrateLegacyViewportKey(key){if(viewportKeyInitialized||typeof key!=="string"||!key)return;viewportKeyInitialized=true;try{const legacy=normalizeViewportState(JSON.parse(localStorage.getItem("vegas-v6-viewport:"+key)||"null"));if(legacy){viewportState=legacy;localStorage.setItem(VIEWPORT_STORAGE_KEY,JSON.stringify(legacy));}}catch(_){}}
+function migrateLegacyViewportKey(key){if(viewportKeyInitialized||typeof key!=="string"||!key)return;const legacyKey="vegas-v6-viewport:"+key;try{const legacy=normalizeViewportState(JSON.parse(localStorage.getItem(legacyKey)||"null"));if(!legacy)return;viewportState=legacy;viewportKeyInitialized=true;localStorage.setItem(VIEWPORT_STORAGE_KEY,JSON.stringify(legacy));localStorage.removeItem(legacyKey);}catch(_){}}
 function ask(){if(!raf&&!destroyed)raf=requestAnimationFrame(loop)}
 function resize(){if(destroyed)return;if(P.size||pinch)resetInteraction();dpr=Math.min(window.devicePixelRatio||1,2);const r=host.getBoundingClientRect();W=r.width;H=r.height;setRight(right);canvas.width=Math.max(1,Math.round(W*dpr));canvas.height=Math.max(1,Math.round(H*dpr));ask()}
 function yOf(p){return T0+(Math.log(hi)-Math.log(p))/(Math.log(hi)-Math.log(lo))*(H-T0-B)}
