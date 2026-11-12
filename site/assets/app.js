@@ -76,6 +76,7 @@ async function refreshCards({force=false}={}){
    const response=await fetch(DATA+"cards.json",{cache:"no-store"});
    if(!response.ok)throw new Error("CN500 cards HTTP "+response.status);
    rows=await response.json();
+   window.__CC_CARD_DATA__=rows;
   }
   if(!Array.isArray(rows)||rows.length!==500)throw new Error("CN500 cards snapshot must contain exactly 500 rows");
   const seen=new Set();
