@@ -11,7 +11,8 @@ var SLOP=4;        // 手指移动超过多少像素才算拖动（小于此值�
 /* ================================= */
 
 /* ---- 数据：[代码, 初始价] ；接口见文末 updateQuote / updateQuotes ---- */
-var CARD_DATA=await fetch("./data/cards.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("CN500 cards unavailable");return r.json()});if(!Array.isArray(CARD_DATA)||CARD_DATA.length!==500)throw new Error("CN500 card count mismatch");var SYMS=CARD_DATA.map(x=>[x.symbol,Number(x.latest_close)||0]);
+window.__CC_CARD_DATA_READY__=fetch("./data/cards.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("CN500 cards unavailable");return r.json()}).then(rows=>{if(!Array.isArray(rows)||rows.length!==500)throw new Error("CN500 card count mismatch");window.__CC_CARD_DATA__=rows;return rows});
+var CARD_DATA=await window.__CC_CARD_DATA_READY__;var SYMS=CARD_DATA.map(x=>[x.symbol,Number(x.latest_close)||0]);
 var N=SYMS.length,W=172,H=100,TAU=Math.PI*2,activeCount=0,step=TAU,A=SHOW*step;
 
 /* ---- 状态：全部用定长数组，运行中零分配 ---- */

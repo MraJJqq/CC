@@ -1,8 +1,8 @@
-import {createV6KlineView} from "./kline/v6-kline-view.js?v=cc-kline-color-20261112-1";
-import {createTencentKlineController} from "./kline/tencent-kline-controller.js?v=cc-clean-20261110-2";
-import {createLifecycleScope} from "./shared/lifecycle.js?v=cc-clean-20261110-2";
-import {createPageLifecycle} from "./shared/page-lifecycle-v6.js?v=cc-clean-20261110-2";
-import {createSignalTicker} from "./modules/signal-ticker/ticker.js?v=cc-clean-20261110-2";
+import {createV6KlineView} from "./kline/v6-kline-view.js?v=cc-batch-20261112-1";
+import {createTencentKlineController} from "./kline/tencent-kline-controller.js?v=cc-batch-20261112-1";
+import {createLifecycleScope} from "./shared/lifecycle.js?v=cc-batch-20261112-1";
+import {createPageLifecycle} from "./shared/page-lifecycle-v6.js?v=cc-batch-20261112-1";
+import {createSignalTicker} from "./modules/signal-ticker/ticker.js?v=cc-batch-20261112-1";
 const DATA="./data/",$=id=>document.getElementById(id),lifecycle=createLifecycleScope();
 window.__CC_READY__=false;
 let pageLifecycle=null,universe=[],signalStocks=[],carouselIndex=0,carouselTimer=null,transitionTimer=null,transitionToken=0,destroyed=false,activeSignalDate="",signalRefreshToken=0,signalRefreshController=null;
@@ -67,12 +67,16 @@ async function transitionToIndex(index,{initial=false}={}){
  sendLogo(item,market);$("app").classList.remove("is-symbol-transitioning");
  transitionTimer=setTimeout(()=>{transitionTimer=null;if(token===transitionToken)scheduleNext()},1500);
 }
-async function refreshCards(){
+async function refreshCards({force=false}={}){
  if(destroyed||typeof window.updateQuotes!=="function")return false;
  try{
-  const response=await fetch(DATA+"cards.json",{cache:"no-store"});
-  if(!response.ok)throw new Error("CN500 cards HTTP "+response.status);
-  const rows=await response.json();
+  let rows=window.__CC_CARD_DATA__;
+  if(!force&&!Array.isArray(rows)&&window.__CC_CARD_DATA_READY__)rows=await window.__CC_CARD_DATA_READY__;
+  if(force||!Array.isArray(rows)){
+   const response=await fetch(DATA+"cards.json",{cache:"no-store"});
+   if(!response.ok)throw new Error("CN500 cards HTTP "+response.status);
+   rows=await response.json();
+  }
   if(!Array.isArray(rows)||rows.length!==500)throw new Error("CN500 cards snapshot must contain exactly 500 rows");
   const seen=new Set();
   for(const row of rows){if(!row||typeof row.symbol!=="string"||!row.symbol||seen.has(row.symbol))throw new Error("CN500 cards snapshot contains an invalid or duplicate symbol");seen.add(row.symbol)}
@@ -106,10 +110,10 @@ function startForegroundTimers(){
  if(destroyed||isHidden())return;
  if(!signalTimer)signalTimer=lifecycle.interval(()=>{if(!isHidden())void refreshSignals().catch(e=>console.warn("[CC] signal refresh failed",e))},60000);
  if(!klineTimer)klineTimer=lifecycle.interval(()=>{if(!isHidden())void controller.refresh()},300000);
- if(!cardsTimer)cardsTimer=lifecycle.interval(()=>{if(!isHidden())void refreshCards()},300000);
+ if(!cardsTimer)cardsTimer=lifecycle.interval(()=>{if(!isHidden())void refreshCards({force:true})},300000);
 }
 function suspendRuntime(){if(destroyed)return;document.documentElement.classList.add("page-hidden");stopCarousel();stopForegroundTimers();interactionLocks.clear();controller.suspend();ticker.setPaused(true)}
-function resumeRuntime(){if(destroyed||isHidden())return;document.documentElement.classList.remove("page-hidden");controller.resume();ticker.setPaused(false);startForegroundTimers();void refreshCards();if(signalStocks.length&&!interactionLocks.size)scheduleNext()}
+function resumeRuntime(){if(destroyed||isHidden())return;document.documentElement.classList.remove("page-hidden");controller.resume();ticker.setPaused(false);startForegroundTimers();void refreshCards({force:true});if(signalStocks.length&&!interactionLocks.size)scheduleNext()}
 function teardown(){if(destroyed)return;destroyed=true;signalRefreshToken++;signalRefreshController?.abort();signalRefreshController=null;stopCarousel();stopForegroundTimers();interactionLocks.clear();pageLifecycle?.destroy();controller.destroy();chart.destroy();ticker.destroy();lifecycle.destroy()}
 pageLifecycle=createPageLifecycle({documentRef:document,windowRef:window,onSuspend:suspendRuntime,onResume:resumeRuntime,onPageHideFinal:teardown});
 document.documentElement.classList.toggle("page-hidden",isHidden());

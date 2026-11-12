@@ -44,7 +44,7 @@ class CCFrontendContractTests(unittest.TestCase):
   self.assertIn("100dvh",self.media)
   self.assertIn("safe-area-inset-bottom",self.media)
   self.assertIn("height:100%",self.tf_responsive)
-  self.assertIn("?v=cc-clean-20261110-2",self.index)
+  self.assertIn("?v=cc-batch-20261112-1",self.index)
  def test_browser_kline_cache_is_bounded(self):
   self.assertIn("MAX_CACHED_CANDLES=1200",self.kline_controller)
   self.assertIn("MAX_CACHE_SYMBOLS=40",self.kline_controller)
@@ -63,9 +63,17 @@ class CCFrontendContractTests(unittest.TestCase):
   view=(ROOT/"site/assets/kline/v6-kline-view.js").read_text(encoding="utf-8")
   for content in (self.index,logo_html):
    self.assertNotIn("cc-viewport-20261110-1",content)
-   self.assertIn("cc-clean-20261110-2",content)
-  self.assertIn("?v=cc-clean-20261110-2",self.app)
-  self.assertIn("?v=cc-clean-20261110-2",view)
+   self.assertIn("cc-batch-20261112-1",content)
+  self.assertIn("?v=cc-batch-20261112-1",self.app)
+  self.assertIn("?v=cc-batch-20261112-1",view)
+ def test_cards_share_one_initial_snapshot_request(self):
+  cards=(ROOT/"site/assets/rolling-cards.js").read_text(encoding="utf-8")
+  self.assertIn("__CC_CARD_DATA_READY__=fetch(\"./data/cards.json\"",cards)
+  self.assertIn("window.__CC_CARD_DATA__=rows",cards)
+  self.assertIn("window.__CC_CARD_DATA_READY__",self.app)
+  self.assertIn("refreshCards({force:true})",self.app)
+  self.assertIn("if(force||!Array.isArray(rows))",self.app)
+  self.assertIn("lifecycle.interval(()=>{if(!isHidden())void refreshCards({force:true})},300000)",self.app)
  def test_kline_controller_destroy_is_safe_before_indexeddb_opens(self):
   self.assertIn("if(dbp)dbp.then(db=>db?.close()).catch(()=>{});",self.kline_controller)
 
